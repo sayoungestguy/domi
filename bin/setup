@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$project_root"
+
+docker compose build api
+docker compose up --detach postgres
+docker compose run --rm api bin/rails db:prepare
+npm --prefix apps/mobile ci
+
+echo "Domi is ready. Run bin/dev to start the API and mobile app."

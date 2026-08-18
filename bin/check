@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$project_root"
+
+test_database_url="postgresql://domi:domi_local_only@postgres:5432/domi_test"
+
+docker compose run --rm -e RAILS_ENV=test -e DATABASE_URL="$test_database_url" api bin/rails db:prepare
+docker compose run --rm -e RAILS_ENV=test -e DATABASE_URL="$test_database_url" api bin/ci
+npm --prefix apps/mobile run check

@@ -1,0 +1,52 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs and coverage
+*.log
+coverage/
+tmp/
+
+# JavaScript / React Native
+node_modules/
+.expo/
+.metro-health-check*
+dist/
+build/
+web-build/
+ios/Pods/
+android/.gradle/
+
+# Ruby / Rails
+.bundle/
+vendor/bundle/
+log/*
+storage/*
+!log/.keep
+!storage/.keep
+public/assets/
+public/packs/
+
+# Python / analytics
+__pycache__/
+.venv/
+*.py[cod]
+
+# Elixir
+_build/
+deps/
+
+# Infrastructure
+.terraform/
+*.tfstate
+*.tfstate.*
+

@@ -1,0 +1,36 @@
+openapi: 3.1.0
+info:
+  title: Domi API
+  version: 1.0.0
+  description: Versioned contract shared by Domi clients and the Rails API.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+paths:
+  /api/v1/health:
+    get:
+      operationId: getApiHealth
+      summary: Verify API connectivity and contract version
+      tags: [System]
+      responses:
+        "200":
+          description: API is available.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+components:
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, service, version]
+      properties:
+        status:
+          type: string
+          const: ok
+        service:
+          type: string
+          const: domi-api
+        version:
+          type: string

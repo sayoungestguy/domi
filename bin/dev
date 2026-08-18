@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$project_root"
+
+docker compose up --detach postgres api
+echo "API: http://localhost:3000/api/v1/health"
+echo "Starting Expo. Stop it with Ctrl-C; use 'docker compose down' when finished."
+npm --prefix apps/mobile start
