@@ -1,11 +1,16 @@
 openapi: 3.1.0
 info:
   title: Domi API
-  version: 1.0.0
+  version: 1.1.0
   description: Versioned contract shared by Domi clients and the Rails API.
 servers:
   - url: http://localhost:3000
     description: Local development
+tags:
+  - name: System
+  - name: Authentication
+  - name: Account
+  - name: Households
 paths:
   /api/v1/health:
     get:
@@ -19,18 +24,518 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Health"
+  /api/v1/auth/register:
+    post:
+      operationId: register
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account]
+              properties:
+                account:
+                  $ref: "#/components/schemas/RegistrationInput"
+      responses:
+        "201":
+          description: Account created; email verification is required.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, verificationRequired]
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+                  verificationRequired: { type: boolean, const: true }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/auth/session:
+    post:
+      operationId: createSession
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session]
+              properties:
+                session:
+                  type: object
+                  required: [email, password]
+                  properties:
+                    email: { type: string, format: email }
+                    password: { type: string, format: password }
+      responses:
+        "201": { $ref: "#/components/responses/Authenticated" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: destroySession
+      tags: [Authentication]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Session family revoked. }
+        "401": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/session/refresh:
+    post:
+      operationId: refreshSession
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        "201":
+          description: Rotated session credentials.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [session]
+                properties:
+                  session: { $ref: "#/components/schemas/Session" }
+        "401": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/email-verification:
+    post:
+      operationId: verifyEmail
+      tags: [Authentication]
+      requestBody:
+        $ref: "#/components/requestBodies/Token"
+      responses:
+        "200": { $ref: "#/components/responses/Authenticated" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/auth/email-verification/resend:
+    post:
+      operationId: resendEmailVerification
+      tags: [Authentication]
+      requestBody:
+        $ref: "#/components/requestBodies/Email"
+      responses:
+        "202": { description: Request accepted regardless of account existence. }
+  /api/v1/auth/password-reset:
+    post:
+      operationId: requestPasswordReset
+      tags: [Authentication]
+      requestBody:
+        $ref: "#/components/requestBodies/Email"
+      responses:
+        "202": { description: Request accepted regardless of account existence. }
+    patch:
+      operationId: resetPassword
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password, passwordConfirmation]
+              properties:
+                token: { type: string }
+                password: { type: string, format: password, minLength: 12, maxLength: 72 }
+                passwordConfirmation: { type: string, format: password }
+      responses:
+        "200": { $ref: "#/components/responses/Authenticated" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/me:
+    get:
+      operationId: getCurrentUser
+      tags: [Account]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Current user.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updateCurrentUser
+      tags: [Account]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user]
+              properties:
+                user:
+                  type: object
+                  required: [displayName]
+                  properties:
+                    displayName: { type: string, maxLength: 80 }
+      responses:
+        "200": { $ref: "#/components/responses/User" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/households:
+    get:
+      operationId: listHouseholds
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Current user's households.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [households]
+                properties:
+                  households:
+                    type: array
+                    items: { $ref: "#/components/schemas/Household" }
+    post:
+      operationId: createHousehold
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        $ref: "#/components/requestBodies/Household"
+      responses:
+        "201": { $ref: "#/components/responses/Household" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/households/{householdId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      operationId: getHousehold
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Household" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updateHousehold
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        $ref: "#/components/requestBodies/HouseholdUpdate"
+      responses:
+        "200": { $ref: "#/components/responses/Household" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/households/{householdId}/memberships:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      operationId: listMemberships
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Household members.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [memberships]
+                properties:
+                  memberships:
+                    type: array
+                    items: { $ref: "#/components/schemas/Membership" }
+  /api/v1/households/{householdId}/memberships/{membershipId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/MembershipId"
+    delete:
+      operationId: removeMembership
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Member removed. }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/households/{householdId}/membership:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    delete:
+      operationId: leaveHousehold
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Current member left. }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/households/{householdId}/ownership:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    post:
+      operationId: transferOwnership
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [membershipId]
+              properties:
+                membershipId: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Ownership transferred.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [membership]
+                properties:
+                  membership: { $ref: "#/components/schemas/Membership" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/households/{householdId}/invitations:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      operationId: listInvitations
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Household invitations without secret tokens.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [invitations]
+                properties:
+                  invitations:
+                    type: array
+                    items: { $ref: "#/components/schemas/Invitation" }
+    post:
+      operationId: createInvitation
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201":
+          description: Invitation created; token is returned only once.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationSecret"
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/households/{householdId}/invitations/{invitationId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/InvitationId"
+    delete:
+      operationId: revokeInvitation
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Invitation revoked. }
+  /api/v1/invitations/accept:
+    post:
+      operationId: acceptInvitation
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        $ref: "#/components/requestBodies/Token"
+      responses:
+        "201": { $ref: "#/components/responses/Household" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+  parameters:
+    HouseholdId:
+      name: householdId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    MembershipId:
+      name: membershipId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    InvitationId:
+      name: invitationId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  requestBodies:
+    Email:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [email]
+            properties:
+              email: { type: string, format: email }
+    Token:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [token]
+            properties:
+              token: { type: string }
+    Household:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [household]
+            properties:
+              household:
+                type: object
+                required: [name]
+                properties:
+                  name: { type: string, maxLength: 100 }
+                  timezone: { type: string, example: Asia/Singapore }
+    HouseholdUpdate:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [household]
+            properties:
+              household:
+                type: object
+                minProperties: 1
+                properties:
+                  name: { type: string, maxLength: 100 }
+                  timezone: { type: string, example: Asia/Singapore }
+  responses:
+    Authenticated:
+      description: Authenticated user and new mobile credentials.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [user, session]
+            properties:
+              user: { $ref: "#/components/schemas/User" }
+              session: { $ref: "#/components/schemas/Session" }
+    User:
+      description: Current user.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [user]
+            properties:
+              user: { $ref: "#/components/schemas/User" }
+    Household:
+      description: Household visible to the current user.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [household]
+            properties:
+              household: { $ref: "#/components/schemas/Household" }
+    Error:
+      description: Request failed.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    ValidationError:
+      description: Input validation failed.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
   schemas:
     Health:
       type: object
       additionalProperties: false
       required: [status, service, version]
       properties:
-        status:
-          type: string
-          const: ok
-        service:
-          type: string
-          const: domi-api
-        version:
-          type: string
+        status: { type: string, const: ok }
+        service: { type: string, const: domi-api }
+        version: { type: string }
+    RegistrationInput:
+      type: object
+      required: [email, displayName, password, passwordConfirmation]
+      properties:
+        email: { type: string, format: email }
+        displayName: { type: string, maxLength: 80 }
+        password: { type: string, format: password, minLength: 12, maxLength: 72 }
+        passwordConfirmation: { type: string, format: password }
+    User:
+      type: object
+      additionalProperties: false
+      required: [id, email, displayName, emailVerified, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        displayName: { type: string }
+        emailVerified: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    Session:
+      type: object
+      additionalProperties: false
+      required: [accessToken, refreshToken, accessExpiresAt, refreshExpiresAt]
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        accessExpiresAt: { type: string, format: date-time }
+        refreshExpiresAt: { type: string, format: date-time }
+    Household:
+      type: object
+      additionalProperties: false
+      required: [id, name, timezone, role, version, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        timezone: { type: string }
+        role: { type: string, enum: [owner, member] }
+        version: { type: integer }
+        createdAt: { type: string, format: date-time }
+    Membership:
+      type: object
+      additionalProperties: false
+      required: [id, role, joinedAt, user]
+      properties:
+        id: { type: string, format: uuid }
+        role: { type: string, enum: [owner, member] }
+        joinedAt: { type: string, format: date-time }
+        user: { $ref: "#/components/schemas/User" }
+    Invitation:
+      type: object
+      required: [id, expiresAt, createdAt, createdBy]
+      properties:
+        id: { type: string, format: uuid }
+        expiresAt: { type: string, format: date-time }
+        revokedAt: { type: [string, "null"], format: date-time }
+        acceptedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        createdBy: { $ref: "#/components/schemas/User" }
+    InvitationSecret:
+      type: object
+      required: [invitation, token, inviteUrl]
+      properties:
+        invitation: { $ref: "#/components/schemas/Invitation" }
+        token: { type: string }
+        inviteUrl: { type: string }
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, requestId, details]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            requestId: { type: string }
+            details: { type: object, additionalProperties: true }

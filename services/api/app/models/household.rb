@@ -1,0 +1,14 @@
+class Household < ApplicationRecord
+  has_many :household_memberships, dependent: :destroy
+  has_many :members, through: :household_memberships, source: :user
+  has_many :household_invitations, dependent: :destroy
+
+  normalizes :name, with: ->(name) { name.strip }
+
+  validates :name, presence: true, length: { maximum: 100 }
+  validates :timezone, presence: true, inclusion: { in: TZInfo::Timezone.all_identifiers }
+
+  def owner_membership
+    household_memberships.find_by(role: "owner")
+  end
+end
