@@ -4,6 +4,8 @@
 **Date:** 2026-08-19  
 **Applies to:** MVP development and post-MVP sequencing
 
+**Progress:** Phase 0 and Phase 1 complete; Phase 2 is next.
+
 ## 1. Delivery decision
 
 Domi will be developed as a sequence of independently demonstrable vertical
@@ -340,4 +342,3 @@ they are not silently deferred.
 Begin Phase 0 by recording runtime/toolchain decisions, generating the Rails and
 React Native applications, and proving one thin connection from the mobile app
 to the API health endpoint through CI.
-

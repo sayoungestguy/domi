@@ -1,6 +1,6 @@
 # Dependency Advisory Baseline
 
-**Reviewed:** 2026-08-19  
+**Reviewed:** 2026-08-20
 **Next review:** On every lockfile change and at least weekly through Dependabot
 
 ## Rails API
@@ -10,8 +10,8 @@ Brakeman reports no security warnings.
 
 ## Expo mobile client
 
-The official Expo SDK 57 template currently produces npm audit findings in
-transitive React Native/Metro build tooling: 11 high and 7 moderate findings,
+The Phase 1 Expo SDK 57 dependency graph currently produces npm audit findings
+in transitive React Native/Metro build tooling: 8 high and 7 moderate findings,
 with no critical findings. The actionable leaf packages include:
 
 - `image-size` through Metro. npm's registry reports 2.0.2 as the newest release,
@@ -28,8 +28,8 @@ the generated application's supported dependency graph.
 ## Temporary decision
 
 - CI fails on critical npm advisories and reports the complete audit output.
-- High/moderate findings above are accepted only for the Phase 0 development
-  toolchain; untrusted image or native-project input must not be processed in
+- High/moderate findings above are accepted only for the current Expo/Metro
+  development toolchain; untrusted image or native-project input must not be processed in
   CI or local automation.
 - Do not use `npm audit fix --force` or unvalidated transitive overrides.
 - Dependabot and Expo compatibility checks run weekly/on changes.

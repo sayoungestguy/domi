@@ -54,10 +54,11 @@ bin/setup
 bin/dev
 ```
 
-The mobile foundation displays whether it can reach
-`http://localhost:3000/api/v1/health`. Android Emulator defaults to
+The Phase 1 mobile app supports account and shared-household management against
+`http://localhost:3000/api/v1`. Android Emulator defaults to
 `http://10.0.2.2:3000`; override with `EXPO_PUBLIC_API_URL` when using a physical
-device.
+device. In development, verification and password-reset emails are written to
+`services/api/tmp/mail`.
 
 Run all local quality checks with:
 
