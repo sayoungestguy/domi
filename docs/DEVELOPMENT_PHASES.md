@@ -4,7 +4,7 @@
 **Date:** 2026-08-19  
 **Applies to:** MVP development and post-MVP sequencing
 
-**Progress:** Phase 0 and Phase 1 complete; Phase 2 is next.
+**Progress:** Phase 0 and Phase 1 complete; Phase 2 is in progress.
 
 ## 1. Delivery decision
 

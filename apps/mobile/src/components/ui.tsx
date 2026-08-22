@@ -44,19 +44,28 @@ export function BrandHeader({ title, subtitle }: { title: string; subtitle?: str
 type FieldProps = TextInputProps & {
   label: string;
   helper?: string;
+  error?: string;
 };
 
-export function Field({ label, helper, ...props }: FieldProps) {
+export function Field({ label, helper, error, accessibilityHint, style, ...props }: FieldProps) {
   return (
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         accessibilityLabel={label}
+        accessibilityHint={error ?? accessibilityHint}
+        aria-invalid={Boolean(error)}
         placeholderTextColor={colors.text.secondary}
-        style={styles.input}
+        style={[styles.input, error && styles.inputError, style]}
         {...props}
       />
-      {helper ? <Text style={styles.helper}>{helper}</Text> : null}
+      {error ? (
+        <Text accessibilityLiveRegion="polite" style={styles.fieldError}>
+          {error}
+        </Text>
+      ) : helper ? (
+        <Text style={styles.helper}>{helper}</Text>
+      ) : null}
     </View>
   );
 }
@@ -188,6 +197,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[3],
   },
   helper: { color: colors.text.secondary, fontSize: 13, lineHeight: 18 },
+  inputError: { borderColor: colors.status.out, borderWidth: 2 },
+  fieldError: { color: colors.status.out, fontSize: 13, lineHeight: 18 },
   button: {
     alignItems: 'center',
     borderRadius: radii.control,

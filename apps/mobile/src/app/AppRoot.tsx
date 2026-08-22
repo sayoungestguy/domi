@@ -7,6 +7,7 @@ import type { AuthenticatedResponse, User } from '../api/types';
 import { AuthScreen, type AuthIntent } from '../features/auth/AuthScreen';
 import { HouseholdsScreen } from '../features/households/HouseholdsScreen';
 import { clearSession, loadSession, saveSession } from '../storage/sessionStore';
+import { clearInventorySnapshots } from '../storage/inventoryCache';
 import { colors, spacing } from '../theme/tokens';
 
 type AuthState =
@@ -20,6 +21,7 @@ export function AppRoot() {
 
   useEffect(() => {
     const unsubscribeUnauthorized = setUnauthorizedHandler(() => {
+      void clearInventorySnapshots();
       setAuthState({ status: 'signed-out' });
     });
 
@@ -68,6 +70,7 @@ export function AppRoot() {
       await signOut();
     } finally {
       await clearSession();
+      await clearInventorySnapshots();
       setIntent(undefined);
       setAuthState({ status: 'signed-out' });
     }

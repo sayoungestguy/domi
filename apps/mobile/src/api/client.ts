@@ -6,6 +6,7 @@ type RequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
   authenticated?: boolean;
+  headers?: Record<string, string>;
 };
 
 type ErrorEnvelope = {
@@ -65,7 +66,7 @@ async function performRequest(
   options: RequestOptions,
   accessToken?: string,
 ): Promise<Response> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: 'application/json', ...options.headers };
   if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json';
   }

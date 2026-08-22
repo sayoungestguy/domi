@@ -1,8 +1,9 @@
 # Domi mobile
 
-Expo SDK 57 and React Native 0.86 client. Phase 1 provides account registration,
-verification, sign-in, password recovery, secure session renewal, deep links,
-and shared-household management.
+Expo SDK 57 and React Native 0.86 client. It provides account registration,
+verification, secure sessions, shared-household management, and Phase 2
+inventory. Inventory reads are cached by household in AsyncStorage for a clearly
+labelled offline view; authentication credentials remain in SecureStore.
 
 From the repository root, run `bin/setup`, then `bin/dev`. By default, iOS and
 web use `http://localhost:3000`; the Android emulator uses

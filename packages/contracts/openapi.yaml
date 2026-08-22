@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Domi API
-  version: 1.1.0
+  version: 1.2.0
   description: Versioned contract shared by Domi clients and the Rails API.
 servers:
   - url: http://localhost:3000
@@ -11,6 +11,7 @@ tags:
   - name: Authentication
   - name: Account
   - name: Households
+  - name: Inventory
 paths:
   /api/v1/health:
     get:
@@ -335,6 +336,191 @@ paths:
       security: [{ bearerAuth: [] }]
       responses:
         "204": { description: Invitation revoked. }
+  /api/v1/households/{householdId}/categories:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      operationId: listCategories
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Active household inventory categories.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [categories]
+                properties:
+                  categories:
+                    type: array
+                    items: { $ref: "#/components/schemas/Category" }
+    post:
+      operationId: createCategory
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        $ref: "#/components/requestBodies/Category"
+      responses:
+        "201":
+          description: Category created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [category]
+                properties:
+                  category: { $ref: "#/components/schemas/Category" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/households/{householdId}/categories/{categoryId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/CategoryId"
+    patch:
+      operationId: updateCategory
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        $ref: "#/components/requestBodies/Category"
+      responses:
+        "200": { description: Category updated. }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/households/{householdId}/inventory/summary:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      operationId: getInventorySummary
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Inventory attention counts and recent activity.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryDashboard" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/households/{householdId}/inventory-items:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      operationId: listInventoryItems
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: query
+          in: query
+          schema: { type: string, maxLength: 120 }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/InventoryStatus" }
+        - name: categoryId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: archived
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Filtered household inventory.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/InventoryItem" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createInventoryItem
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        $ref: "#/components/requestBodies/InventoryItem"
+      responses:
+        "201": { $ref: "#/components/responses/InventoryItemResult" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/households/{householdId}/inventory-items/{inventoryItemId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/InventoryItemId"
+    get:
+      operationId: getInventoryItem
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Inventory item.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [item]
+                properties:
+                  item: { $ref: "#/components/schemas/InventoryItem" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updateInventoryItem
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        $ref: "#/components/requestBodies/InventoryItem"
+      responses:
+        "200": { $ref: "#/components/responses/InventoryItemResult" }
+        "409": { $ref: "#/components/responses/ConflictError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/households/{householdId}/inventory-items/{inventoryItemId}/status:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/InventoryItemId"
+      - $ref: "#/components/parameters/IfMatch"
+    patch:
+      operationId: changeInventoryStatus
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: "#/components/schemas/InventoryStatus" }
+      responses:
+        "200": { $ref: "#/components/responses/InventoryItem" }
+        "409": { $ref: "#/components/responses/ConflictError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/households/{householdId}/inventory-items/{inventoryItemId}/archive:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/InventoryItemId"
+      - $ref: "#/components/parameters/IfMatch"
+    post:
+      operationId: archiveInventoryItem
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/InventoryItem" }
+        "409": { $ref: "#/components/responses/ConflictError" }
+  /api/v1/households/{householdId}/inventory-items/{inventoryItemId}/restore:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/InventoryItemId"
+      - $ref: "#/components/parameters/IfMatch"
+    post:
+      operationId: restoreInventoryItem
+      tags: [Inventory]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/InventoryItem" }
+        "409": { $ref: "#/components/responses/ConflictError" }
   /api/v1/invitations/accept:
     post:
       operationId: acceptInvitation
@@ -368,6 +554,22 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    InventoryItemId:
+      name: inventoryItemId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Current integer resource version, optionally quoted.
+      schema: { type: string, pattern: '^(W/)?"?[0-9]+"?$' }
   requestBodies:
     Email:
       required: true
@@ -415,6 +617,29 @@ components:
                 properties:
                   name: { type: string, maxLength: 100 }
                   timezone: { type: string, example: Asia/Singapore }
+    Category:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [category]
+            properties:
+              category:
+                type: object
+                required: [name]
+                properties:
+                  name: { type: string, minLength: 1, maxLength: 80 }
+                  position: { type: integer, minimum: 0 }
+    InventoryItem:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [inventoryItem]
+            properties:
+              inventoryItem: { $ref: "#/components/schemas/InventoryItemInput" }
   responses:
     Authenticated:
       description: Authenticated user and new mobile credentials.
@@ -454,6 +679,32 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    ConflictError:
+      description: Resource version or domain invariant conflict.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    InventoryItem:
+      description: Inventory item.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [item]
+            properties:
+              item: { $ref: "#/components/schemas/InventoryItem" }
+    InventoryItemResult:
+      description: Inventory item and non-blocking domain warnings.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [item, warnings]
+            properties:
+              item: { $ref: "#/components/schemas/InventoryItem" }
+              warnings:
+                type: array
+                items: { $ref: "#/components/schemas/Warning" }
   schemas:
     Health:
       type: object
@@ -527,6 +778,92 @@ components:
         invitation: { $ref: "#/components/schemas/Invitation" }
         token: { type: string }
         inviteUrl: { type: string }
+    InventoryStatus:
+      type: string
+      enum: [ok, low, out]
+    Category:
+      type: object
+      additionalProperties: false
+      required: [id, name, position, archivedAt, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        position: { type: integer }
+        archivedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    InventoryItemInput:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        status: { $ref: "#/components/schemas/InventoryStatus" }
+        quantity: { type: [number, "null"], minimum: 0 }
+        unit: { type: [string, "null"], maxLength: 40 }
+        notes: { type: [string, "null"], maxLength: 2000 }
+        categoryId: { type: [string, "null"], format: uuid }
+    InventoryItem:
+      type: object
+      additionalProperties: false
+      required:
+        [id, householdId, name, status, quantity, unit, notes, category, version,
+         archivedAt, updatedBy, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        householdId: { type: string, format: uuid }
+        name: { type: string }
+        status: { $ref: "#/components/schemas/InventoryStatus" }
+        quantity: { type: [number, "null"] }
+        unit: { type: [string, "null"] }
+        notes: { type: [string, "null"] }
+        category:
+          oneOf:
+            - $ref: "#/components/schemas/Category"
+            - type: "null"
+        version: { type: integer, minimum: 0 }
+        archivedAt: { type: [string, "null"], format: date-time }
+        updatedBy: { $ref: "#/components/schemas/User" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    InventorySummary:
+      type: object
+      additionalProperties: false
+      required: [total, ok, low, out, needsAttention, updatedAt]
+      properties:
+        total: { type: integer, minimum: 0 }
+        ok: { type: integer, minimum: 0 }
+        low: { type: integer, minimum: 0 }
+        out: { type: integer, minimum: 0 }
+        needsAttention: { type: integer, minimum: 0 }
+        updatedAt: { type: [string, "null"], format: date-time }
+    Activity:
+      type: object
+      additionalProperties: false
+      required: [id, action, message, actor, subjectType, subjectId, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        action: { type: string }
+        message: { type: string }
+        actor: { $ref: "#/components/schemas/User" }
+        subjectType: { type: string }
+        subjectId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+    InventoryDashboard:
+      type: object
+      additionalProperties: false
+      required: [summary, recentActivity]
+      properties:
+        summary: { $ref: "#/components/schemas/InventorySummary" }
+        recentActivity:
+          type: array
+          items: { $ref: "#/components/schemas/Activity" }
+    Warning:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
     ErrorEnvelope:
       type: object
       required: [error]
