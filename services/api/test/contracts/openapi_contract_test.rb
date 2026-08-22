@@ -8,7 +8,7 @@ class OpenapiContractTest < ActiveSupport::TestCase
     contract = YAML.safe_load_file(CONTRACT_PATH, aliases: true)
 
     assert_equal "3.1.0", contract.fetch("openapi")
-    assert_equal "1.2.0", contract.dig("info", "version")
+    assert_equal "1.3.0", contract.dig("info", "version")
     expected_paths = %w[
       /api/v1/health
       /api/v1/auth/register
@@ -34,6 +34,11 @@ class OpenapiContractTest < ActiveSupport::TestCase
       /api/v1/households/{householdId}/inventory-items/{inventoryItemId}/status
       /api/v1/households/{householdId}/inventory-items/{inventoryItemId}/archive
       /api/v1/households/{householdId}/inventory-items/{inventoryItemId}/restore
+      /api/v1/households/{householdId}/shopping-list
+      /api/v1/households/{householdId}/shopping-list/entries
+      /api/v1/households/{householdId}/shopping-list/entries/{shoppingEntryId}
+      /api/v1/households/{householdId}/shopping-list/entries/{shoppingEntryId}/purchased
+      /api/v1/households/{householdId}/shopping-preference
       /api/v1/invitations/accept
     ]
     assert_equal expected_paths.sort, contract.fetch("paths").keys.sort

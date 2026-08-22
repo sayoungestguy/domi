@@ -104,3 +104,29 @@ export type InventoryDashboard = {
   summary: InventorySummary;
   recentActivity: Activity[];
 };
+
+export type ShoppingEntry = {
+  id: string;
+  householdId: string;
+  name: string;
+  quantity: number | null;
+  note: string | null;
+  purchased: boolean;
+  checkedAt: string | null;
+  inventoryItemId: string | null;
+  version: number;
+  addedBy: User;
+  updatedBy: User;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ShoppingList = {
+  id: string;
+  householdId: string;
+  entries: ShoppingEntry[];
+  remainingCount: number;
+  purchasedCount: number;
+  autoAddOutItems: boolean;
+  updatedAt: string | null;
+};

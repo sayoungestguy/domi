@@ -7,6 +7,10 @@ class User < ApplicationRecord
   has_many :household_memberships, dependent: :restrict_with_error
   has_many :households, through: :household_memberships
   has_many :activities, foreign_key: :actor_id, dependent: :restrict_with_error, inverse_of: :actor
+  has_many :added_shopping_entries, class_name: "ShoppingEntry", foreign_key: :added_by_id,
+    dependent: :restrict_with_error, inverse_of: :added_by
+  has_many :updated_shopping_entries, class_name: "ShoppingEntry", foreign_key: :updated_by_id,
+    dependent: :restrict_with_error, inverse_of: :updated_by
 
   normalizes :email, with: ->(email) { email.strip.downcase }
   normalizes :display_name, with: ->(name) { name.strip }

@@ -5,6 +5,8 @@ class Household < ApplicationRecord
   has_many :categories, dependent: :destroy
   has_many :inventory_items, dependent: :destroy
   has_many :activities, dependent: :destroy
+  has_one :shopping_list, dependent: :destroy
+  has_one :household_preference, dependent: :destroy
 
   normalizes :name, with: ->(name) { name.strip }
 

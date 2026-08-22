@@ -1,8 +1,8 @@
 # Domi mobile
 
 Expo SDK 57 and React Native 0.86 client. It provides account registration,
-verification, secure sessions, shared-household management, and Phase 2
-inventory. Inventory reads are cached by household in AsyncStorage for a clearly
+verification, secure sessions, shared-household management, Phase 2 inventory,
+and the Phase 3 shared shopping list. Inventory reads are cached by household in AsyncStorage for a clearly
 labelled offline view; authentication credentials remain in SecureStore.
 
 From the repository root, run `bin/setup`, then `bin/dev`. By default, iOS and

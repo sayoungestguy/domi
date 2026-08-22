@@ -29,6 +29,13 @@ Rails.application.routes.draw do
             post :restore
           end
         end
+        resource :shopping_list, only: :show, path: "shopping-list", controller: "shopping_lists" do
+          resources :shopping_entries, only: %i[create update destroy], path: "entries" do
+            patch :purchased, on: :member
+          end
+        end
+        resource :shopping_preference, only: :update, path: "shopping-preference",
+          controller: "shopping_preferences"
       end
       post "invitations/accept", to: "invitations#accept"
     end

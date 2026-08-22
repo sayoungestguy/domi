@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_22_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_22_000200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -92,6 +92,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_22_000100) do
     t.check_constraint "role::text = ANY (ARRAY['owner'::character varying::text, 'member'::character varying::text])", name: "household_membership_role"
   end
 
+  create_table "household_preferences", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "auto_add_out_items", default: false, null: false
+    t.datetime "created_at", null: false
+    t.uuid "household_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id"], name: "index_household_preferences_on_household_id", unique: true
+  end
+
   create_table "households", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "lock_version", default: 0, null: false
@@ -121,7 +129,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_22_000100) do
     t.index ["household_id"], name: "index_inventory_items_on_household_id"
     t.index ["updated_by_id"], name: "index_inventory_items_on_updated_by_id"
     t.check_constraint "quantity IS NULL OR quantity >= 0::numeric", name: "inventory_item_quantity_nonnegative"
-    t.check_constraint "status::text = ANY (ARRAY['ok'::character varying, 'low'::character varying, 'out'::character varying]::text[])", name: "inventory_item_status"
+    t.check_constraint "status::text = ANY (ARRAY['ok'::character varying::text, 'low'::character varying::text, 'out'::character varying::text])", name: "inventory_item_status"
+  end
+
+  create_table "shopping_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "added_by_id", null: false
+    t.datetime "checked_at"
+    t.datetime "created_at", null: false
+    t.string "idempotency_key", limit: 255, null: false
+    t.uuid "inventory_item_id"
+    t.integer "lock_version", default: 0, null: false
+    t.citext "name", null: false
+    t.text "note"
+    t.boolean "purchased", default: false, null: false
+    t.decimal "quantity", precision: 12, scale: 3
+    t.datetime "removed_at"
+    t.uuid "shopping_list_id", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "updated_by_id", null: false
+    t.index ["added_by_id"], name: "index_shopping_entries_on_added_by_id"
+    t.index ["inventory_item_id"], name: "index_shopping_entries_on_inventory_item_id"
+    t.index ["shopping_list_id", "idempotency_key"], name: "index_shopping_entries_on_list_and_idempotency", unique: true
+    t.index ["shopping_list_id", "inventory_item_id"], name: "index_shopping_entries_on_active_linked_item", unique: true, where: "((inventory_item_id IS NOT NULL) AND (removed_at IS NULL))"
+    t.index ["shopping_list_id", "removed_at", "purchased", "created_at"], name: "index_shopping_entries_on_active_list"
+    t.index ["shopping_list_id"], name: "index_shopping_entries_on_shopping_list_id"
+    t.index ["updated_by_id"], name: "index_shopping_entries_on_updated_by_id"
+    t.check_constraint "quantity IS NULL OR quantity >= 0::numeric", name: "shopping_entry_quantity_nonnegative"
+  end
+
+  create_table "shopping_lists", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "household_id", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id"], name: "index_shopping_lists_on_household_id", unique: true
   end
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -149,8 +190,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_22_000100) do
   add_foreign_key "household_invitations", "users", column: "created_by_id"
   add_foreign_key "household_memberships", "households"
   add_foreign_key "household_memberships", "users"
+  add_foreign_key "household_preferences", "households"
   add_foreign_key "inventory_items", "categories"
   add_foreign_key "inventory_items", "households"
   add_foreign_key "inventory_items", "users", column: "created_by_id"
   add_foreign_key "inventory_items", "users", column: "updated_by_id"
+  add_foreign_key "shopping_entries", "inventory_items"
+  add_foreign_key "shopping_entries", "shopping_lists"
+  add_foreign_key "shopping_entries", "users", column: "added_by_id"
+  add_foreign_key "shopping_entries", "users", column: "updated_by_id"
+  add_foreign_key "shopping_lists", "households"
 end

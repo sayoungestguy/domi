@@ -5,6 +5,7 @@ class InventoryItem < ApplicationRecord
   belongs_to :category, optional: true
   belongs_to :created_by, class_name: "User"
   belongs_to :updated_by, class_name: "User"
+  has_many :shopping_entries, dependent: :restrict_with_error
 
   normalizes :name, with: ->(name) { name.strip }
   normalizes :unit, with: ->(unit) { unit.strip.presence }
