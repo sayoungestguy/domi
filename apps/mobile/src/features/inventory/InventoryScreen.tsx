@@ -13,6 +13,7 @@ import {
   type InventoryItemInput,
 } from '../../api/inventory';
 import { ApiError } from '../../api/client';
+import { createShoppingEntry } from '../../api/shopping';
 import type {
   Category,
   Household,
@@ -376,9 +377,30 @@ export function InventoryScreen({ household }: Props) {
                     onPress={() => {
                       if (item.status === status) return;
                       void runAction(`status-${item.id}`, async () => {
-                        await changeInventoryStatus(household.id, item, status);
+                        const response = await changeInventoryStatus(household.id, item, status);
                         await refresh();
-                        setNotice(`${item.name} is now ${status.toUpperCase()}.`);
+                        if (response.shopping.automaticallyAdded) {
+                          setNotice(`${item.name} is OUT and was added to shopping.`);
+                        } else {
+                          setNotice(`${item.name} is now ${status.toUpperCase()}.`);
+                        }
+                        if (response.shopping.shouldPrompt) {
+                          Alert.alert(
+                            'Add to shopping?',
+                            `${item.name} is OUT. Add it to the household shopping list?`,
+                            [
+                              { text: 'Not now', style: 'cancel' },
+                              {
+                                text: 'Add',
+                                onPress: () =>
+                                  void runAction(`shopping-${item.id}`, async () => {
+                                    await createShoppingEntry(household.id, { inventoryItemId: item.id });
+                                    setNotice(`${item.name} was added to shopping.`);
+                                  }),
+                              },
+                            ],
+                          );
+                        }
                       });
                     }}
                   />

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Domi API
-  version: 1.2.0
+  version: 1.3.0
   description: Versioned contract shared by Domi clients and the Rails API.
 servers:
   - url: http://localhost:3000
@@ -12,6 +12,7 @@ tags:
   - name: Account
   - name: Households
   - name: Inventory
+  - name: Shopping
 paths:
   /api/v1/health:
     get:
@@ -494,7 +495,11 @@ paths:
               properties:
                 status: { $ref: "#/components/schemas/InventoryStatus" }
       responses:
-        "200": { $ref: "#/components/responses/InventoryItem" }
+        "200":
+          description: Updated inventory item and shopping-list action.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryStatusResult" }
         "409": { $ref: "#/components/responses/ConflictError" }
         "422": { $ref: "#/components/responses/ValidationError" }
   /api/v1/households/{householdId}/inventory-items/{inventoryItemId}/archive:
@@ -521,6 +526,109 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/InventoryItem" }
         "409": { $ref: "#/components/responses/ConflictError" }
+  /api/v1/households/{householdId}/shopping-list:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      operationId: getShoppingList
+      tags: [Shopping]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: The household's single active shopping list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [shoppingList]
+                properties:
+                  shoppingList: { $ref: "#/components/schemas/ShoppingList" }
+        "404": { $ref: "#/components/responses/Error" }
+  /api/v1/households/{householdId}/shopping-list/entries:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    post:
+      operationId: createShoppingEntry
+      tags: [Shopping]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        $ref: "#/components/requestBodies/ShoppingEntry"
+      responses:
+        "200": { $ref: "#/components/responses/ShoppingEntry" }
+        "201": { $ref: "#/components/responses/ShoppingEntry" }
+        "400": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/households/{householdId}/shopping-list/entries/{shoppingEntryId}:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/ShoppingEntryId"
+      - $ref: "#/components/parameters/IfMatch"
+    patch:
+      operationId: updateShoppingEntry
+      tags: [Shopping]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        $ref: "#/components/requestBodies/ShoppingEntryUpdate"
+      responses:
+        "200": { $ref: "#/components/responses/ShoppingEntry" }
+        "409": { $ref: "#/components/responses/ConflictError" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      operationId: removeShoppingEntry
+      tags: [Shopping]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Entry removed from the active list. }
+        "409": { $ref: "#/components/responses/ConflictError" }
+  /api/v1/households/{householdId}/shopping-list/entries/{shoppingEntryId}/purchased:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+      - $ref: "#/components/parameters/ShoppingEntryId"
+      - $ref: "#/components/parameters/IfMatch"
+    patch:
+      operationId: setShoppingEntryPurchased
+      tags: [Shopping]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [purchased]
+              properties:
+                purchased: { type: boolean }
+      responses:
+        "200": { $ref: "#/components/responses/ShoppingEntry" }
+        "409": { $ref: "#/components/responses/ConflictError" }
+  /api/v1/households/{householdId}/shopping-preference:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    patch:
+      operationId: updateShoppingPreference
+      tags: [Shopping]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [autoAddOutItems]
+              properties:
+                autoAddOutItems: { type: boolean }
+      responses:
+        "200":
+          description: Updated automatic-add preference.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [autoAddOutItems]
+                properties:
+                  autoAddOutItems: { type: boolean }
   /api/v1/invitations/accept:
     post:
       operationId: acceptInvitation
@@ -564,6 +672,17 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    ShoppingEntryId:
+      name: shoppingEntryId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Stable key reused when retrying the same entry creation.
+      schema: { type: string, minLength: 8, maxLength: 255 }
     IfMatch:
       name: If-Match
       in: header
@@ -640,6 +759,24 @@ components:
             required: [inventoryItem]
             properties:
               inventoryItem: { $ref: "#/components/schemas/InventoryItemInput" }
+    ShoppingEntry:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [shoppingEntry]
+            properties:
+              shoppingEntry: { $ref: "#/components/schemas/ShoppingEntryInput" }
+    ShoppingEntryUpdate:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [shoppingEntry]
+            properties:
+              shoppingEntry: { $ref: "#/components/schemas/ShoppingEntryUpdateInput" }
   responses:
     Authenticated:
       description: Authenticated user and new mobile credentials.
@@ -705,6 +842,15 @@ components:
               warnings:
                 type: array
                 items: { $ref: "#/components/schemas/Warning" }
+    ShoppingEntry:
+      description: Shopping entry.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [entry]
+            properties:
+              entry: { $ref: "#/components/schemas/ShoppingEntry" }
   schemas:
     Health:
       type: object
@@ -857,6 +1003,75 @@ components:
         recentActivity:
           type: array
           items: { $ref: "#/components/schemas/Activity" }
+    ShoppingEntryInput:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        quantity: { type: [number, "null"], minimum: 0 }
+        note: { type: [string, "null"], maxLength: 1000 }
+        inventoryItemId: { type: string, format: uuid }
+    ShoppingEntryUpdateInput:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        quantity: { type: [number, "null"], minimum: 0 }
+        note: { type: [string, "null"], maxLength: 1000 }
+    ShoppingEntry:
+      type: object
+      additionalProperties: false
+      required:
+        [id, householdId, name, quantity, note, purchased, checkedAt,
+         inventoryItemId, version, addedBy, updatedBy, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        householdId: { type: string, format: uuid }
+        name: { type: string }
+        quantity: { type: [number, "null"] }
+        note: { type: [string, "null"] }
+        purchased: { type: boolean }
+        checkedAt: { type: [string, "null"], format: date-time }
+        inventoryItemId: { type: [string, "null"], format: uuid }
+        version: { type: integer, minimum: 0 }
+        addedBy: { $ref: "#/components/schemas/User" }
+        updatedBy: { $ref: "#/components/schemas/User" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ShoppingList:
+      type: object
+      additionalProperties: false
+      required:
+        [id, householdId, entries, remainingCount, purchasedCount,
+         autoAddOutItems, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        householdId: { type: string, format: uuid }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/ShoppingEntry" }
+        remainingCount: { type: integer, minimum: 0 }
+        purchasedCount: { type: integer, minimum: 0 }
+        autoAddOutItems: { type: boolean }
+        updatedAt: { type: [string, "null"], format: date-time }
+    InventoryShoppingOutcome:
+      type: object
+      additionalProperties: false
+      required: [automaticallyAdded, shouldPrompt, entry]
+      properties:
+        automaticallyAdded: { type: boolean }
+        shouldPrompt: { type: boolean }
+        entry:
+          oneOf:
+            - $ref: "#/components/schemas/ShoppingEntry"
+            - type: "null"
+    InventoryStatusResult:
+      type: object
+      additionalProperties: false
+      required: [item, shopping]
+      properties:
+        item: { $ref: "#/components/schemas/InventoryItem" }
+        shopping: { $ref: "#/components/schemas/InventoryShoppingOutcome" }
     Warning:
       type: object
       additionalProperties: false

@@ -47,14 +47,21 @@ module Api
       def status
         household = find_household!
         item = household.inventory_items.active.find(params[:id])
-        item = Inventory::ChangeStatus.call(
+        result = Inventory::ChangeStatus.call(
           household:,
           actor: current_user,
           item:,
           status: params.require(:status),
           expected_version: expected_version!
         )
-        render json: { item: InventoryItemSerializer.render(item) }
+        render json: {
+          item: InventoryItemSerializer.render(result.item),
+          shopping: {
+            automaticallyAdded: result.shopping.automatically_added,
+            shouldPrompt: result.shopping.should_prompt,
+            entry: result.shopping.entry && ShoppingEntrySerializer.render(result.shopping.entry)
+          }
+        }
       end
 
       def archive

@@ -5,6 +5,7 @@ import type {
   InventoryItem,
   InventoryStatus,
   InventoryWarning,
+  ShoppingEntry,
 } from './types';
 
 export type InventoryItemInput = {
@@ -69,7 +70,14 @@ export function changeInventoryStatus(
   householdId: string,
   item: InventoryItem,
   status: InventoryStatus,
-): Promise<{ item: InventoryItem }> {
+): Promise<{
+  item: InventoryItem;
+  shopping: {
+    automaticallyAdded: boolean;
+    shouldPrompt: boolean;
+    entry: ShoppingEntry | null;
+  };
+}> {
   return apiRequest(`/api/v1/households/${householdId}/inventory-items/${item.id}/status`, {
     method: 'PATCH',
     headers: { 'If-Match': String(item.version) },

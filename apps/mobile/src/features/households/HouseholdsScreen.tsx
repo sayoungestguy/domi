@@ -18,6 +18,7 @@ import {
 import type { Household, Invitation, Membership, User } from '../../api/types';
 import { BrandHeader, Button, Card, Field, Message, Screen, sharedStyles } from '../../components/ui';
 import { InventoryScreen } from '../inventory/InventoryScreen';
+import { ShoppingScreen } from '../shopping/ShoppingScreen';
 import { colors, radii, spacing } from '../../theme/tokens';
 import { required, requiredMaxLength } from '../../validation/rules';
 import { useFormValidation } from '../../validation/useFormValidation';
@@ -45,6 +46,7 @@ export function HouseholdsScreen({
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
+  const [section, setSection] = useState<'inventory' | 'shopping' | 'settings'>('inventory');
   const processedJoinToken = useRef<string | undefined>(undefined);
   const validation = useFormValidation();
 
@@ -190,9 +192,34 @@ export function HouseholdsScreen({
         </View>
       ) : null}
 
-      {selected ? <InventoryScreen household={selected} key={selected.id} /> : null}
-
       {selected ? (
+        <View accessibilityRole="tablist" style={styles.navigation}>
+          <NavigationTab
+            active={section === 'inventory'}
+            label="Inventory"
+            onPress={() => setSection('inventory')}
+          />
+          <NavigationTab
+            active={section === 'shopping'}
+            label="Shopping"
+            onPress={() => setSection('shopping')}
+          />
+          <NavigationTab
+            active={section === 'settings'}
+            label="Settings"
+            onPress={() => setSection('settings')}
+          />
+        </View>
+      ) : null}
+
+      {selected && section === 'inventory' ? (
+        <InventoryScreen household={selected} key={`inventory-${selected.id}`} />
+      ) : null}
+      {selected && section === 'shopping' ? (
+        <ShoppingScreen household={selected} key={`shopping-${selected.id}`} />
+      ) : null}
+
+      {selected && section === 'settings' ? (
         <>
           <Card>
             <Text style={sharedStyles.sectionTitle}>Household details</Text>
@@ -340,7 +367,7 @@ export function HouseholdsScreen({
             />
           )}
         </>
-      ) : (
+      ) : !selected ? (
         <Card>
           <Text style={sharedStyles.sectionTitle}>Create your first home</Text>
           <Field
@@ -365,7 +392,7 @@ export function HouseholdsScreen({
             }
           />
         </Card>
-      )}
+      ) : null}
 
       <Card>
         <Text style={sharedStyles.sectionTitle}>Join with an invitation</Text>
@@ -398,6 +425,19 @@ export function HouseholdsScreen({
   );
 }
 
+function NavigationTab({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={[styles.navigationTab, active && styles.navigationTabActive]}
+    >
+      <Text style={[styles.navigationLabel, active && styles.navigationLabelActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   householdPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   householdChoice: {
@@ -412,6 +452,25 @@ const styles = StyleSheet.create({
   },
   householdChoiceSelected: { backgroundColor: colors.brand[100], borderColor: colors.brand[600] },
   householdChoiceName: { color: colors.text.primary, fontSize: 16, fontWeight: '600' },
+  navigation: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.control,
+    borderWidth: 1,
+    flexDirection: 'row',
+    padding: spacing[1],
+  },
+  navigationTab: {
+    alignItems: 'center',
+    borderRadius: radii.control,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: spacing[2],
+  },
+  navigationTabActive: { backgroundColor: colors.brand[100] },
+  navigationLabel: { color: colors.text.secondary, fontSize: 14, fontWeight: '600' },
+  navigationLabelActive: { color: colors.brand[700] },
   member: { borderTopColor: colors.border, borderTopWidth: 1, gap: spacing[3], paddingTop: spacing[4] },
   memberIdentity: { gap: spacing[1] },
   compactActions: { gap: spacing[2] },
