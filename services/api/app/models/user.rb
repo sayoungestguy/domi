@@ -6,6 +6,7 @@ class User < ApplicationRecord
   has_many :auth_sessions, dependent: :destroy
   has_many :household_memberships, dependent: :restrict_with_error
   has_many :households, through: :household_memberships
+  has_many :activities, foreign_key: :actor_id, dependent: :restrict_with_error, inverse_of: :actor
 
   normalizes :email, with: ->(email) { email.strip.downcase }
   normalizes :display_name, with: ->(name) { name.strip }

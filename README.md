@@ -54,8 +54,10 @@ bin/setup
 bin/dev
 ```
 
-The Phase 1 mobile app supports account and shared-household management against
-`http://localhost:3000/api/v1`. Android Emulator defaults to
+The mobile app supports account, shared-household, and household inventory
+management against `http://localhost:3000/api/v1`. Inventory includes
+categories, search, `OK`/`LOW`/`OUT`, attention summaries, activity,
+archive/restore, version conflicts, and last-known offline reads. Android Emulator defaults to
 `http://10.0.2.2:3000`; override with `EXPO_PUBLIC_API_URL` when using a physical
 device. In development, verification and password-reset emails are written to
 `services/api/tmp/mail`.

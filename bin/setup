@@ -6,6 +6,9 @@ cd "$project_root"
 
 docker compose build api
 docker compose up --detach postgres
+# The named bundle volume survives image rebuilds, so refresh it whenever the
+# lockfile changes instead of allowing it to hide gems installed in the image.
+docker compose run --rm api bundle install
 docker compose run --rm api bin/rails db:prepare
 npm --prefix apps/mobile ci
 

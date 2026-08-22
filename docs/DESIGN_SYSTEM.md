@@ -128,6 +128,12 @@ Persistent visible label, optional helper/error message, and clear focus state.
 Placeholder text never replaces a label. Validate after blur or submit unless
 immediate feedback prevents an invalid action.
 
+Once a user changes a field, validate it as the value changes. An invalid field
+uses the semantic error colour for its border, displays one specific correction
+message directly below it, exposes its invalid state to assistive technology,
+and returns to its normal border as soon as it becomes valid. Do not show errors
+on untouched fields or rely on colour without text.
+
 ### Card, banner, toast, and empty state
 
 - Cards group related content, not every row.
@@ -193,4 +199,3 @@ design-system review.
 
 Before implementation handoff, each critical flow needs loading, empty, error,
 offline, permission-denied, and large-text designs—not only the happy path.
-

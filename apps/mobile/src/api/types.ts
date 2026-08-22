@@ -48,3 +48,59 @@ export type InvitationSecret = {
   token: string;
   inviteUrl: string;
 };
+
+export type InventoryStatus = 'ok' | 'low' | 'out';
+
+export type Category = {
+  id: string;
+  name: string;
+  position: number;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type InventoryItem = {
+  id: string;
+  householdId: string;
+  name: string;
+  status: InventoryStatus;
+  quantity: number | null;
+  unit: string | null;
+  notes: string | null;
+  category: Category | null;
+  version: number;
+  archivedAt: string | null;
+  updatedBy: User;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type InventoryWarning = {
+  code: string;
+  message: string;
+};
+
+export type InventorySummary = {
+  total: number;
+  ok: number;
+  low: number;
+  out: number;
+  needsAttention: number;
+  updatedAt: string | null;
+};
+
+export type Activity = {
+  id: string;
+  action: string;
+  message: string;
+  actor: User;
+  subjectType: string;
+  subjectId: string;
+  createdAt: string;
+};
+
+export type InventoryDashboard = {
+  summary: InventorySummary;
+  recentActivity: Activity[];
+};

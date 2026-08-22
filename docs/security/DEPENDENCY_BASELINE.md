@@ -1,6 +1,6 @@
 # Dependency Advisory Baseline
 
-**Reviewed:** 2026-08-20
+**Reviewed:** 2026-08-22
 **Next review:** On every lockfile change and at least weekly through Dependabot
 
 ## Rails API
@@ -10,8 +10,8 @@ Brakeman reports no security warnings.
 
 ## Expo mobile client
 
-The Phase 1 Expo SDK 57 dependency graph currently produces npm audit findings
-in transitive React Native/Metro build tooling: 8 high and 7 moderate findings,
+The Phase 2 Expo SDK 57 dependency graph currently produces npm audit findings
+in transitive React Native/Metro build tooling: 4 high and 10 moderate findings,
 with no critical findings. The actionable leaf packages include:
 
 - `image-size` through Metro. npm's registry reports 2.0.2 as the newest release,
@@ -38,3 +38,7 @@ the generated application's supported dependency graph.
 
 This exception does not apply to future application/runtime dependencies. New
 high or critical findings require individual review before merge.
+
+The Phase 2 `@react-native-async-storage/async-storage` runtime dependency does
+not introduce a direct advisory. It stores only household-partitioned last-known
+inventory reads; authentication credentials remain in SecureStore.

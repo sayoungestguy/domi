@@ -13,6 +13,14 @@ import { ApiError } from '../../api/client';
 import type { AuthenticatedResponse } from '../../api/types';
 import { BrandHeader, Button, Card, Field, Message, Screen } from '../../components/ui';
 import { colors, spacing } from '../../theme/tokens';
+import {
+  confirmation,
+  email as validateEmail,
+  password as validatePassword,
+  required,
+  requiredMaxLength,
+} from '../../validation/rules';
+import { useFormValidation } from '../../validation/useFormValidation';
 
 export type AuthIntent =
   | { kind: 'verify-email'; token: string }
@@ -38,6 +46,13 @@ export function AuthScreen({ intent, onAuthenticated }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
+  const validation = useFormValidation();
+
+  const emailError = validateEmail(email);
+  const passwordError = validatePassword(password);
+  const confirmationError = confirmation(passwordConfirmation, password);
+  const displayNameError = requiredMaxLength(displayName, 'Your name', 80);
+  const tokenError = required(token, 'Token');
 
   async function submit(action: () => Promise<void>) {
     setBusy(true);
@@ -64,37 +79,42 @@ export function AuthScreen({ intent, onAuthenticated }: Props) {
           <Field
             autoCapitalize="words"
             autoComplete="name"
+            error={validation.error('displayName', displayNameError)}
             label="Your name"
-            onChangeText={setDisplayName}
+            onChangeText={validation.bind('displayName', setDisplayName)}
             value={displayName}
           />
           <Field
             autoCapitalize="none"
             autoComplete="email"
+            error={validation.error('email', emailError)}
             keyboardType="email-address"
             label="Email"
-            onChangeText={setEmail}
+            onChangeText={validation.bind('email', setEmail)}
             value={email}
           />
           <Field
             autoCapitalize="none"
             autoComplete="new-password"
+            error={validation.error('password', passwordError)}
             helper="Use at least 12 characters."
             label="Password"
-            onChangeText={setPassword}
+            onChangeText={validation.bind('password', setPassword)}
             secureTextEntry
             value={password}
           />
           <Field
             autoCapitalize="none"
             autoComplete="new-password"
+            error={validation.error('passwordConfirmation', confirmationError)}
             label="Confirm password"
-            onChangeText={setPasswordConfirmation}
+            onChangeText={validation.bind('passwordConfirmation', setPasswordConfirmation)}
             secureTextEntry
             value={passwordConfirmation}
           />
           {error ? <Message type="error">{error}</Message> : null}
           <Button
+            disabled={Boolean(displayNameError || emailError || passwordError || confirmationError)}
             label="Create account"
             loading={busy}
             onPress={() =>
@@ -119,13 +139,14 @@ export function AuthScreen({ intent, onAuthenticated }: Props) {
           {notice ? <Message type="success">{notice}</Message> : null}
           <Field
             autoCapitalize="none"
+            error={validation.error('token', tokenError)}
             label="Verification token"
-            onChangeText={setToken}
+            onChangeText={validation.bind('token', setToken)}
             value={token}
           />
           {error ? <Message type="error">{error}</Message> : null}
           <Button
-            disabled={!token.trim()}
+            disabled={Boolean(tokenError)}
             label="Verify and continue"
             loading={busy}
             onPress={() =>
@@ -135,7 +156,7 @@ export function AuthScreen({ intent, onAuthenticated }: Props) {
             }
           />
           <Button
-            disabled={!email.trim()}
+            disabled={Boolean(emailError)}
             label="Send a new link"
             onPress={() =>
               void submit(async () => {
@@ -159,15 +180,16 @@ export function AuthScreen({ intent, onAuthenticated }: Props) {
           <Field
             autoCapitalize="none"
             autoComplete="email"
+            error={validation.error('email', emailError)}
             keyboardType="email-address"
             label="Email"
-            onChangeText={setEmail}
+            onChangeText={validation.bind('email', setEmail)}
             value={email}
           />
           {notice ? <Message type="success">{notice}</Message> : null}
           {error ? <Message type="error">{error}</Message> : null}
           <Button
-            disabled={!email.trim()}
+            disabled={Boolean(emailError)}
             label="Send reset link"
             loading={busy}
             onPress={() =>
@@ -189,25 +211,33 @@ export function AuthScreen({ intent, onAuthenticated }: Props) {
       <Screen>
         <BrandHeader title="Choose a new password" />
         <Card>
-          <Field autoCapitalize="none" label="Reset token" onChangeText={setToken} value={token} />
+          <Field
+            autoCapitalize="none"
+            error={validation.error('token', tokenError)}
+            label="Reset token"
+            onChangeText={validation.bind('token', setToken)}
+            value={token}
+          />
           <Field
             autoComplete="new-password"
+            error={validation.error('password', passwordError)}
             helper="Use at least 12 characters."
             label="New password"
-            onChangeText={setPassword}
+            onChangeText={validation.bind('password', setPassword)}
             secureTextEntry
             value={password}
           />
           <Field
             autoComplete="new-password"
+            error={validation.error('passwordConfirmation', confirmationError)}
             label="Confirm new password"
-            onChangeText={setPasswordConfirmation}
+            onChangeText={validation.bind('passwordConfirmation', setPasswordConfirmation)}
             secureTextEntry
             value={passwordConfirmation}
           />
           {error ? <Message type="error">{error}</Message> : null}
           <Button
-            disabled={!token.trim()}
+            disabled={Boolean(tokenError || passwordError || confirmationError)}
             label="Reset and sign in"
             loading={busy}
             onPress={() =>
@@ -236,21 +266,24 @@ export function AuthScreen({ intent, onAuthenticated }: Props) {
         <Field
           autoCapitalize="none"
           autoComplete="email"
+          error={validation.error('email', emailError)}
           keyboardType="email-address"
           label="Email"
-          onChangeText={setEmail}
+          onChangeText={validation.bind('email', setEmail)}
           value={email}
         />
         <Field
           autoCapitalize="none"
           autoComplete="current-password"
+          error={validation.error('password', passwordError)}
           label="Password"
-          onChangeText={setPassword}
+          onChangeText={validation.bind('password', setPassword)}
           secureTextEntry
           value={password}
         />
         {error ? <Message type="error">{error}</Message> : null}
         <Button
+          disabled={Boolean(emailError || passwordError)}
           label="Sign in"
           loading={busy}
           onPress={() =>

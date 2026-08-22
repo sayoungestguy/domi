@@ -12,7 +12,9 @@ bin/dev
 ```
 
 The versioned API includes account authentication, profile, household,
-membership, and invitation resources. Its executable contract is
+membership, invitation, category, inventory, attention-summary, and activity
+resources. Inventory mutations use optimistic versions and attributed domain
+commands. Its executable contract is
 `../../packages/contracts/openapi.yaml`; the connectivity endpoint is:
 
 ```text

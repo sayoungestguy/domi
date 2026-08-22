@@ -19,6 +19,16 @@ Rails.application.routes.draw do
         delete "membership", to: "memberships#leave"
         post "ownership", to: "memberships#transfer"
         resources :invitations, only: %i[index create destroy]
+        resources :categories, only: %i[index create update]
+        resource :inventory_dashboard, only: :show, path: "inventory/summary",
+          controller: "inventory_dashboard"
+        resources :inventory_items, path: "inventory-items", only: %i[index show create update] do
+          member do
+            patch :status
+            post :archive
+            post :restore
+          end
+        end
       end
       post "invitations/accept", to: "invitations#accept"
     end

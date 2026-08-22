@@ -17,7 +17,10 @@ import {
 } from '../../api/households';
 import type { Household, Invitation, Membership, User } from '../../api/types';
 import { BrandHeader, Button, Card, Field, Message, Screen, sharedStyles } from '../../components/ui';
+import { InventoryScreen } from '../inventory/InventoryScreen';
 import { colors, radii, spacing } from '../../theme/tokens';
+import { required, requiredMaxLength } from '../../validation/rules';
+import { useFormValidation } from '../../validation/useFormValidation';
 
 type Props = {
   user: User;
@@ -43,6 +46,10 @@ export function HouseholdsScreen({
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const processedJoinToken = useRef<string | undefined>(undefined);
+  const validation = useFormValidation();
+
+  const householdNameError = requiredMaxLength(householdName, 'Household name', 100);
+  const joinTokenError = required(joinToken, 'Invitation token');
 
   const selected = useMemo(
     () => households.find((household) => household.id === selectedId),
@@ -183,15 +190,22 @@ export function HouseholdsScreen({
         </View>
       ) : null}
 
+      {selected ? <InventoryScreen household={selected} key={selected.id} /> : null}
+
       {selected ? (
         <>
           <Card>
             <Text style={sharedStyles.sectionTitle}>Household details</Text>
-            <Field label="Household name" onChangeText={setHouseholdName} value={householdName} />
+            <Field
+              error={validation.error('householdName', householdNameError)}
+              label="Household name"
+              onChangeText={validation.bind('householdName', setHouseholdName)}
+              value={householdName}
+            />
             <Text style={sharedStyles.secondary}>Timezone: {selected.timezone}</Text>
             {selected.role === 'owner' ? (
               <Button
-                disabled={!householdName.trim() || householdName.trim() === selected.name}
+                disabled={Boolean(householdNameError) || householdName.trim() === selected.name}
                 label="Save household"
                 loading={busy === 'rename'}
                 onPress={() =>
@@ -330,13 +344,14 @@ export function HouseholdsScreen({
         <Card>
           <Text style={sharedStyles.sectionTitle}>Create your first home</Text>
           <Field
+            error={validation.error('householdName', householdNameError)}
             label="Household name"
-            onChangeText={setHouseholdName}
+            onChangeText={validation.bind('householdName', setHouseholdName)}
             placeholder="Tan Household"
             value={householdName}
           />
           <Button
-            disabled={!householdName.trim()}
+            disabled={Boolean(householdNameError)}
             label="Create home"
             loading={busy === 'create'}
             onPress={() =>
@@ -356,12 +371,13 @@ export function HouseholdsScreen({
         <Text style={sharedStyles.sectionTitle}>Join with an invitation</Text>
         <Field
           autoCapitalize="none"
+          error={validation.error('joinToken', joinTokenError)}
           label="Invitation token"
-          onChangeText={setJoinToken}
+          onChangeText={validation.bind('joinToken', setJoinToken)}
           value={joinToken}
         />
         <Button
-          disabled={!joinToken.trim()}
+          disabled={Boolean(joinTokenError)}
           label="Join household"
           loading={busy === 'join-manual'}
           onPress={() =>

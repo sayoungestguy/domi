@@ -10,11 +10,25 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_20_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_22_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
+
+  create_table "activities", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "action", null: false
+    t.uuid "actor_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "household_id", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.uuid "subject_id", null: false
+    t.string "subject_type", null: false
+    t.index ["actor_id"], name: "index_activities_on_actor_id"
+    t.index ["household_id", "created_at"], name: "index_activities_on_household_id_and_created_at", order: { created_at: :desc }
+    t.index ["household_id"], name: "index_activities_on_household_id"
+    t.index ["subject_type", "subject_id"], name: "index_activities_on_subject_type_and_subject_id"
+  end
 
   create_table "auth_sessions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "access_expires_at", null: false
@@ -34,6 +48,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_000100) do
     t.index ["token_family_id"], name: "index_auth_sessions_on_token_family_id"
     t.index ["user_id", "revoked_at"], name: "index_auth_sessions_on_user_id_and_revoked_at"
     t.index ["user_id"], name: "index_auth_sessions_on_user_id"
+  end
+
+  create_table "categories", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "archived_at"
+    t.datetime "created_at", null: false
+    t.uuid "household_id", null: false
+    t.citext "name", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "name"], name: "index_categories_on_household_and_active_name", unique: true, where: "(archived_at IS NULL)"
+    t.index ["household_id", "position"], name: "index_categories_on_household_id_and_position"
+    t.index ["household_id"], name: "index_categories_on_household_id"
   end
 
   create_table "household_invitations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -74,6 +100,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_000100) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "inventory_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "archived_at"
+    t.uuid "category_id"
+    t.datetime "created_at", null: false
+    t.uuid "created_by_id", null: false
+    t.uuid "household_id", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.citext "name", null: false
+    t.text "notes"
+    t.decimal "quantity", precision: 12, scale: 3
+    t.string "status", default: "ok", null: false
+    t.string "unit", limit: 40
+    t.datetime "updated_at", null: false
+    t.uuid "updated_by_id", null: false
+    t.index ["category_id"], name: "index_inventory_items_on_category_id"
+    t.index ["created_by_id"], name: "index_inventory_items_on_created_by_id"
+    t.index ["household_id", "archived_at", "status", "updated_at"], name: "index_inventory_items_on_household_filter"
+    t.index ["household_id", "name"], name: "index_inventory_items_on_household_and_name"
+    t.index ["household_id"], name: "index_inventory_items_on_household_id"
+    t.index ["updated_by_id"], name: "index_inventory_items_on_updated_by_id"
+    t.check_constraint "quantity IS NULL OR quantity >= 0::numeric", name: "inventory_item_quantity_nonnegative"
+    t.check_constraint "status::text = ANY (ARRAY['ok'::character varying, 'low'::character varying, 'out'::character varying]::text[])", name: "inventory_item_status"
+  end
+
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -90,10 +140,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_000100) do
     t.index ["password_reset_token_digest"], name: "index_users_on_password_reset_token_digest", unique: true, where: "(password_reset_token_digest IS NOT NULL)"
   end
 
+  add_foreign_key "activities", "households"
+  add_foreign_key "activities", "users", column: "actor_id"
   add_foreign_key "auth_sessions", "users"
+  add_foreign_key "categories", "households"
   add_foreign_key "household_invitations", "households"
   add_foreign_key "household_invitations", "users", column: "accepted_by_id"
   add_foreign_key "household_invitations", "users", column: "created_by_id"
   add_foreign_key "household_memberships", "households"
   add_foreign_key "household_memberships", "users"
+  add_foreign_key "inventory_items", "categories"
+  add_foreign_key "inventory_items", "households"
+  add_foreign_key "inventory_items", "users", column: "created_by_id"
+  add_foreign_key "inventory_items", "users", column: "updated_by_id"
 end
