@@ -11,7 +11,7 @@ Brakeman reports no security warnings.
 ## Expo mobile client
 
 The Phase 2 Expo SDK 57 dependency graph currently produces npm audit findings
-in transitive React Native/Metro build tooling: 5 high and 10 moderate findings,
+in transitive React Native/Metro build tooling: 4 high and 10 moderate findings,
 with no critical findings. The actionable leaf packages include:
 
 - `image-size` through Metro. npm's registry reports 2.0.2 as the newest release,
