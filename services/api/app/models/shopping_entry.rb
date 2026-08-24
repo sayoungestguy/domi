@@ -3,6 +3,8 @@ class ShoppingEntry < ApplicationRecord
   belongs_to :inventory_item, optional: true
   belongs_to :added_by, class_name: "User"
   belongs_to :updated_by, class_name: "User"
+  has_one :shopping_trip_item, foreign_key: :source_entry_id, dependent: :restrict_with_error,
+    inverse_of: :source_entry
 
   normalizes :name, with: ->(name) { name.strip }
   normalizes :note, with: ->(note) { note.strip.presence }

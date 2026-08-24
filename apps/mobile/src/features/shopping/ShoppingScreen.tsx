@@ -12,15 +12,24 @@ import {
 import { ApiError } from '../../api/client';
 import { listInventoryItems } from '../../api/inventory';
 import {
+  completeShoppingTrip,
   createShoppingEntry,
+  createShoppingIdempotencyKey,
   getShoppingList,
+  getShoppingTrips,
   removeShoppingEntry,
   setShoppingEntryPurchased,
   updateShoppingEntry,
   updateShoppingPreference,
   type ShoppingEntryInput,
 } from '../../api/shopping';
-import type { Household, InventoryItem, ShoppingEntry, ShoppingList } from '../../api/types';
+import type {
+  Household,
+  InventoryItem,
+  ShoppingEntry,
+  ShoppingList,
+  ShoppingTrip,
+} from '../../api/types';
 import { Button, Card, Field, Message, sharedStyles } from '../../components/ui';
 import { colors, radii, spacing } from '../../theme/tokens';
 import { maxLength, quantity as validateQuantity, requiredMaxLength } from '../../validation/rules';
@@ -30,6 +39,7 @@ type Props = { household: Household };
 
 export function ShoppingScreen({ household }: Props) {
   const [list, setList] = useState<ShoppingList>();
+  const [trips, setTrips] = useState<ShoppingTrip[]>([]);
   const [outItems, setOutItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>();
@@ -40,6 +50,8 @@ export function ShoppingScreen({ household }: Props) {
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
   const [note, setNote] = useState('');
+  const [restockLinkedItems, setRestockLinkedItems] = useState(true);
+  const [completionKey, setCompletionKey] = useState<string>();
   const validation = useFormValidation();
 
   const nameError = requiredMaxLength(name, 'Item name', 120);
@@ -47,12 +59,14 @@ export function ShoppingScreen({ household }: Props) {
   const noteError = maxLength(note, 'Note', 1_000);
 
   const refresh = useCallback(async () => {
-    const [listResponse, inventoryResponse] = await Promise.all([
+    const [listResponse, inventoryResponse, tripsResponse] = await Promise.all([
       getShoppingList(household.id),
       listInventoryItems(household.id, { status: 'out' }),
+      getShoppingTrips(household.id),
     ]);
     setList(listResponse.shoppingList);
     setOutItems(inventoryResponse.items);
+    setTrips(tripsResponse.trips);
   }, [household.id]);
 
   useEffect(() => {
@@ -60,11 +74,13 @@ export function ShoppingScreen({ household }: Props) {
     void Promise.all([
       getShoppingList(household.id),
       listInventoryItems(household.id, { status: 'out' }),
+      getShoppingTrips(household.id),
     ])
-      .then(([listResponse, inventoryResponse]) => {
+      .then(([listResponse, inventoryResponse, tripsResponse]) => {
         if (!active) return;
         setList(listResponse.shoppingList);
         setOutItems(inventoryResponse.items);
+        setTrips(tripsResponse.trips);
       })
       .catch((loadError) => {
         if (active) setError(errorMessage(loadError));
@@ -149,6 +165,47 @@ export function ShoppingScreen({ household }: Props) {
         { text: 'Remove', style: 'destructive', onPress: () => resolve(true) },
       ]);
     });
+  }
+
+  async function confirmCompletion() {
+    return new Promise<boolean>((resolve) => {
+      const restockMessage = restockLinkedItems
+        ? 'Linked inventory will be marked OK.'
+        : 'Inventory statuses will stay unchanged.';
+      Alert.alert(
+        'Finish shopping?',
+        `${purchased.length} checked ${purchased.length === 1 ? 'item' : 'items'} will move to history. ` +
+          `${remaining.length} unchecked ${remaining.length === 1 ? 'item stays' : 'items stay'} on the list. ` +
+          restockMessage,
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Finish', onPress: () => resolve(true) },
+        ],
+        { cancelable: true, onDismiss: () => resolve(false) },
+      );
+    });
+  }
+
+  async function finishShopping() {
+    if (!(await confirmCompletion())) return;
+
+    const key = completionKey ?? createShoppingIdempotencyKey();
+    setCompletionKey(key);
+    const response = await completeShoppingTrip(household.id, restockLinkedItems, key);
+    setCompletionKey(undefined);
+    setList(response.shoppingList);
+    setTrips((current) => [response.trip, ...current.filter((trip) => trip.id !== response.trip.id)]);
+    const restockedIds = new Set(
+      response.trip.items
+        .filter((item) => item.restocked)
+        .map((item) => item.inventoryItemId)
+        .filter((id): id is string => Boolean(id)),
+    );
+    setOutItems((current) => current.filter((item) => !restockedIds.has(item.id)));
+    setNotice(
+      `Shopping finished with ${response.trip.purchasedCount} ` +
+        `${response.trip.purchasedCount === 1 ? 'item' : 'items'}.`,
+    );
   }
 
   if (loading && !list) {
@@ -323,6 +380,55 @@ export function ShoppingScreen({ household }: Props) {
               }
             />
           ))}
+          <View style={styles.completionPanel}>
+            <View style={styles.preferenceRow}>
+              <View style={styles.preferenceText}>
+                <Text style={sharedStyles.body}>Restock linked inventory</Text>
+                <Text style={sharedStyles.secondary}>
+                  Mark linked inventory items OK when this trip finishes.
+                </Text>
+              </View>
+              <Switch
+                accessibilityLabel="Mark linked inventory items OK after finishing shopping"
+                accessibilityRole="switch"
+                disabled={busy === 'finish'}
+                onValueChange={setRestockLinkedItems}
+                trackColor={{ false: colors.border, true: colors.brand[600] }}
+                value={restockLinkedItems}
+              />
+            </View>
+            <Button
+              label={completionKey ? 'Retry finish shopping' : 'Finish shopping'}
+              loading={busy === 'finish'}
+              onPress={() => void runAction('finish', finishShopping)}
+            />
+            {completionKey ? (
+              <Text accessibilityLiveRegion="polite" style={sharedStyles.secondary}>
+                Your previous attempt did not complete. Retrying is safe and will not duplicate the trip.
+              </Text>
+            ) : null}
+          </View>
+        </Card>
+      ) : null}
+
+      {trips.length > 0 ? (
+        <Card>
+          <Text style={sharedStyles.sectionTitle}>Recent trips</Text>
+          {trips.map((trip) => (
+            <View key={trip.id} style={styles.tripRow}>
+              <Text style={styles.entryName}>
+                {trip.purchasedCount} {trip.purchasedCount === 1 ? 'item' : 'items'} ·{' '}
+                {formatTripDate(trip.completedAt)}
+              </Text>
+              <Text style={sharedStyles.secondary}>
+                {trip.items.map((item) => item.name).join(', ')}
+              </Text>
+              <Text style={sharedStyles.secondary}>
+                Finished by {trip.completedBy.displayName}
+                {trip.restockedCount > 0 ? ` · ${trip.restockedCount} restocked` : ''}
+              </Text>
+            </View>
+          ))}
         </Card>
       ) : null}
     </View>
@@ -382,6 +488,14 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Domi could not load shopping.';
 }
 
+function formatTripDate(completedAt: string) {
+  return new Date(completedAt).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 const styles = StyleSheet.create({
   loading: { alignItems: 'center', gap: spacing[3], padding: spacing[8] },
   modeHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing[4], justifyContent: 'space-between' },
@@ -409,4 +523,11 @@ const styles = StyleSheet.create({
   entryIdentity: { flex: 1, gap: spacing[1] },
   entryName: { color: colors.text.primary, fontSize: 18, fontWeight: '600', lineHeight: 24 },
   entryPurchased: { color: colors.text.secondary, textDecorationLine: 'line-through' },
+  completionPanel: {
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    gap: spacing[3],
+    paddingTop: spacing[4],
+  },
+  tripRow: { borderTopColor: colors.border, borderTopWidth: 1, gap: spacing[1], paddingTop: spacing[3] },
 });

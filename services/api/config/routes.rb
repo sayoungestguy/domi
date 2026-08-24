@@ -30,10 +30,12 @@ Rails.application.routes.draw do
           end
         end
         resource :shopping_list, only: :show, path: "shopping-list", controller: "shopping_lists" do
+          post :complete, to: "shopping_list_completions#create"
           resources :shopping_entries, only: %i[create update destroy], path: "entries" do
             patch :purchased, on: :member
           end
         end
+        resources :shopping_trips, only: :index, path: "shopping-trips"
         resource :shopping_preference, only: :update, path: "shopping-preference",
           controller: "shopping_preferences"
       end

@@ -12,19 +12,22 @@ bin/dev
 ```
 
 The versioned API includes account authentication, profile, household,
-membership, invitation, category, inventory, attention-summary, and activity
-resources. Inventory mutations use optimistic versions and attributed domain
-commands. Its executable contract is
+membership, invitation, category, inventory, shopping-list, atomic trip
+completion, immutable trip-history, attention-summary, and activity resources.
+Inventory and shopping mutations use attributed domain commands, optimistic
+versions where resources are editable, and idempotency keys for retry-safe
+creation/completion. Its executable contract is
 `../../packages/contracts/openapi.yaml`; the connectivity endpoint is:
 
 ```text
 GET http://localhost:3000/api/v1/health
 ```
 
-Run the API checks through the pinned container toolchain:
+Run every API and mobile check through the pinned project workflow from the
+repository root:
 
 ```sh
-docker compose run --rm -e RAILS_ENV=test api bin/ci
+bin/check
 ```
 
 Development authentication emails are delivered as files under `tmp/mail`, so

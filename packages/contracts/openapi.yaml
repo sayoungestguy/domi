@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Domi API
-  version: 1.3.0
+  version: 1.4.0
   description: Versioned contract shared by Domi clients and the Rails API.
 servers:
   - url: http://localhost:3000
@@ -560,6 +560,31 @@ paths:
         "201": { $ref: "#/components/responses/ShoppingEntry" }
         "400": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/households/{householdId}/shopping-list/complete:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    post:
+      operationId: completeShoppingTrip
+      summary: Atomically complete all currently purchased shopping entries
+      tags: [Shopping]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [restockInventoryItems]
+              properties:
+                restockInventoryItems: { type: boolean }
+      responses:
+        "200": { $ref: "#/components/responses/ShoppingCompletion" }
+        "201": { $ref: "#/components/responses/ShoppingCompletion" }
+        "400": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
   /api/v1/households/{householdId}/shopping-list/entries/{shoppingEntryId}:
     parameters:
       - $ref: "#/components/parameters/HouseholdId"
@@ -629,6 +654,29 @@ paths:
                 required: [autoAddOutItems]
                 properties:
                   autoAddOutItems: { type: boolean }
+  /api/v1/households/{householdId}/shopping-trips:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      operationId: listShoppingTrips
+      summary: List the household's 20 most recent completed shopping trips
+      tags: [Shopping]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Immutable shopping-trip history, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [trips]
+                properties:
+                  trips:
+                    type: array
+                    maxItems: 20
+                    items: { $ref: "#/components/schemas/ShoppingTrip" }
+        "404": { $ref: "#/components/responses/Error" }
   /api/v1/invitations/accept:
     post:
       operationId: acceptInvitation
@@ -681,7 +729,7 @@ components:
       name: Idempotency-Key
       in: header
       required: true
-      description: Stable key reused when retrying the same entry creation.
+      description: Stable key reused when retrying the same command.
       schema: { type: string, minLength: 8, maxLength: 255 }
     IfMatch:
       name: If-Match
@@ -851,6 +899,17 @@ components:
             required: [entry]
             properties:
               entry: { $ref: "#/components/schemas/ShoppingEntry" }
+    ShoppingCompletion:
+      description: Completed trip and refreshed active shopping list.
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [trip, shoppingList]
+            properties:
+              trip: { $ref: "#/components/schemas/ShoppingTrip" }
+              shoppingList: { $ref: "#/components/schemas/ShoppingList" }
   schemas:
     Health:
       type: object
@@ -1054,6 +1113,39 @@ components:
         purchasedCount: { type: integer, minimum: 0 }
         autoAddOutItems: { type: boolean }
         updatedAt: { type: [string, "null"], format: date-time }
+    ShoppingTripItem:
+      type: object
+      additionalProperties: false
+      required:
+        [id, sourceEntryId, inventoryItemId, name, quantity, note, checkedAt,
+         restocked]
+      properties:
+        id: { type: string, format: uuid }
+        sourceEntryId: { type: string, format: uuid }
+        inventoryItemId: { type: [string, "null"], format: uuid }
+        name: { type: string }
+        quantity: { type: [number, "null"] }
+        note: { type: [string, "null"] }
+        checkedAt: { type: string, format: date-time }
+        restocked: { type: boolean }
+    ShoppingTrip:
+      type: object
+      additionalProperties: false
+      required:
+        [id, householdId, completedAt, completedBy, restockInventoryItems,
+         purchasedCount, restockedCount, items]
+      properties:
+        id: { type: string, format: uuid }
+        householdId: { type: string, format: uuid }
+        completedAt: { type: string, format: date-time }
+        completedBy: { $ref: "#/components/schemas/User" }
+        restockInventoryItems: { type: boolean }
+        purchasedCount: { type: integer, minimum: 1 }
+        restockedCount: { type: integer, minimum: 0 }
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/ShoppingTripItem" }
     InventoryShoppingOutcome:
       type: object
       additionalProperties: false
