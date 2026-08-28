@@ -47,6 +47,14 @@ Rails.application.configure do
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
+  # Native and Expo-web clients may connect from origins other than the API
+  # host. Deployments must explicitly enumerate those HTTPS origins.
+  cable_origins = ENV.fetch("ACTION_CABLE_ALLOWED_ORIGINS", "")
+                     .split(",")
+                     .map(&:strip)
+                     .reject(&:empty?)
+  config.action_cable.allowed_request_origins = cable_origins if cable_origins.any?
+
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false

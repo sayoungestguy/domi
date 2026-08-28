@@ -35,6 +35,7 @@ microservices prematurely.
 - [System architecture](docs/ARCHITECTURE.md)
 - [Design system](docs/DESIGN_SYSTEM.md)
 - [Technical design](docs/TECHNICAL_DESIGN.md)
+- [Playwright E2E plan](docs/testing/PLAYWRIGHT_E2E_PLAN.md)
 
 ## Local development target
 
@@ -59,7 +60,10 @@ shopping, and completed-trip history against `http://localhost:3000/api/v1`. Inv
 categories, search, `OK`/`LOW`/`OUT`, attention summaries, activity,
 archive/restore, version conflicts, and last-known offline reads. Checked
 shopping entries can be completed atomically, with an explicit option to mark
-linked inventory `OK`. Android Emulator defaults to
+linked inventory `OK`. Household changes are delivered as authorized realtime
+invalidations; reconnecting and foregrounded clients refetch authoritative state,
+and shopping reads remain visibly available from a last-known offline cache.
+Android Emulator defaults to
 `http://10.0.2.2:3000`; override with `EXPO_PUBLIC_API_URL` when using a physical
 device. In development, verification and password-reset emails are written to
 `services/api/tmp/mail`.

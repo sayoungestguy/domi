@@ -37,9 +37,9 @@ const EMPTY_DASHBOARD: InventoryDashboard = {
 
 const STATUSES: InventoryStatus[] = ['ok', 'low', 'out'];
 
-type Props = { household: Household };
+type Props = { household: Household; refreshSignal?: number };
 
-export function InventoryScreen({ household }: Props) {
+export function InventoryScreen({ household, refreshSignal = 0 }: Props) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [dashboard, setDashboard] = useState<InventoryDashboard>(EMPTY_DASHBOARD);
@@ -86,13 +86,13 @@ export function InventoryScreen({ household }: Props) {
     setDashboard(dashboardResponse);
     setOffline(false);
     if (!query.trim() && !statusFilter && !showArchived) {
-      await saveInventorySnapshot({
+      void saveInventorySnapshot({
         householdId: household.id,
         items: itemsResponse.items,
         categories: categoriesResponse.categories,
         dashboard: dashboardResponse,
         savedAt: new Date().toISOString(),
-      });
+      }).catch(() => undefined);
     }
   }, [household.id, query, queryError, showArchived, statusFilter]);
 
@@ -122,6 +122,14 @@ export function InventoryScreen({ household }: Props) {
       active = false;
     };
   }, [household.id, refresh]);
+
+  useEffect(() => {
+    if (refreshSignal === 0) return;
+    const timer = setTimeout(() => {
+      void refresh().catch(() => setOffline(true));
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [refresh, refreshSignal]);
 
   async function runAction(key: string, action: () => Promise<void>) {
     setBusy(key);

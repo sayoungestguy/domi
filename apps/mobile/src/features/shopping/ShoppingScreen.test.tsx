@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 
 import { listInventoryItems } from '../../api/inventory';
@@ -9,6 +10,7 @@ import {
   getShoppingTrips,
 } from '../../api/shopping';
 import type { Household, ShoppingList, ShoppingTrip, User } from '../../api/types';
+import { saveShoppingSnapshot } from '../../storage/shoppingCache';
 import { ShoppingScreen } from './ShoppingScreen';
 
 jest.mock('../../api/inventory');
@@ -104,7 +106,8 @@ const keyMock = createShoppingIdempotencyKey as jest.MockedFunction<
   typeof createShoppingIdempotencyKey
 >;
 
-beforeEach(() => {
+beforeEach(async () => {
+  await AsyncStorage.clear();
   jest.clearAllMocks();
   getListMock
     .mockResolvedValueOnce({ shoppingList: initialList })
@@ -170,4 +173,20 @@ test('completion sends an explicit choice to leave inventory unchanged', async (
     expect.any(Array),
     expect.objectContaining({ cancelable: true }),
   );
+});
+
+test('shows a visibly stale shopping snapshot when authoritative reads are offline', async () => {
+  await saveShoppingSnapshot({
+    householdId: household.id,
+    list: initialList,
+    trips: [trip],
+    savedAt: '2026-08-25T00:00:00Z',
+  });
+  getListMock.mockReset().mockRejectedValue(new Error('Network unavailable'));
+
+  await render(<ShoppingScreen household={household} />);
+
+  expect(await screen.findByText(/You’re offline. Showing shopping saved/)).toBeTruthy();
+  expect(screen.getByText('Coffee')).toBeTruthy();
+  expect(screen.getByText('Recent trips')).toBeTruthy();
 });

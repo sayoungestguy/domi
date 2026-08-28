@@ -19,6 +19,7 @@ import type { Household, Invitation, Membership, User } from '../../api/types';
 import { BrandHeader, Button, Card, Field, Message, Screen, sharedStyles } from '../../components/ui';
 import { InventoryScreen } from '../inventory/InventoryScreen';
 import { ShoppingScreen } from '../shopping/ShoppingScreen';
+import { useHouseholdRealtime } from '../../realtime/useHouseholdRealtime';
 import { colors, radii, spacing } from '../../theme/tokens';
 import { required, requiredMaxLength } from '../../validation/rules';
 import { useFormValidation } from '../../validation/useFormValidation';
@@ -57,6 +58,7 @@ export function HouseholdsScreen({
     () => households.find((household) => household.id === selectedId),
     [households, selectedId],
   );
+  const realtime = useHouseholdRealtime(selectedId);
 
   const handleError = useCallback((actionError: unknown) => {
     setError(
@@ -75,6 +77,7 @@ export function HouseholdsScreen({
       }
       return response.households[0]?.id;
     });
+    return response.households;
   }, []);
 
   const loadHouseholdDetails = useCallback(async (household: Household) => {
@@ -123,6 +126,19 @@ export function HouseholdsScreen({
   }, [handleError, selected]);
 
   useEffect(() => {
+    if (!selectedId || realtime.revision === 0) return;
+    const timer = setTimeout(() => {
+      void loadHouseholds()
+        .then((refreshed) => {
+          const current = refreshed.find((household) => household.id === selectedId);
+          return current ? loadHouseholdDetails(current) : undefined;
+        })
+        .catch(handleError);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [handleError, loadHouseholdDetails, loadHouseholds, realtime.revision, selectedId]);
+
+  useEffect(() => {
     if (!initialJoinToken || processedJoinToken.current === initialJoinToken) {
       return;
     }
@@ -168,6 +184,14 @@ export function HouseholdsScreen({
       <BrandHeader title={`Hello, ${user.displayName}`} subtitle="Choose a home or create a new one." />
       {notice ? <Message type="success">{notice}</Message> : null}
       {error ? <Message type="error">{error}</Message> : null}
+      {realtime.status === 'disconnected' ? (
+        <Message type="error">
+          Live updates are unavailable. Domi will refresh this home when the connection returns.
+        </Message>
+      ) : null}
+      {realtime.status === 'gap' ? (
+        <Message type="error">Domi detected missed updates and refreshed this home.</Message>
+      ) : null}
 
       {households.length > 0 ? (
         <View style={styles.householdPicker}>
@@ -213,10 +237,18 @@ export function HouseholdsScreen({
       ) : null}
 
       {selected && section === 'inventory' ? (
-        <InventoryScreen household={selected} key={`inventory-${selected.id}`} />
+        <InventoryScreen
+          household={selected}
+          key={`inventory-${selected.id}`}
+          refreshSignal={realtime.revision}
+        />
       ) : null}
       {selected && section === 'shopping' ? (
-        <ShoppingScreen household={selected} key={`shopping-${selected.id}`} />
+        <ShoppingScreen
+          household={selected}
+          key={`shopping-${selected.id}`}
+          refreshSignal={realtime.revision}
+        />
       ) : null}
 
       {selected && section === 'settings' ? (

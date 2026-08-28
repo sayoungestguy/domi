@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_25_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_29_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -104,8 +104,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_25_000100) do
     t.datetime "created_at", null: false
     t.integer "lock_version", default: 0, null: false
     t.string "name", null: false
+    t.bigint "realtime_sequence", default: 0, null: false
     t.string "timezone", default: "Etc/UTC", null: false
     t.datetime "updated_at", null: false
+    t.check_constraint "realtime_sequence >= 0", name: "household_realtime_sequence_nonnegative"
   end
 
   create_table "inventory_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -130,6 +132,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_25_000100) do
     t.index ["updated_by_id"], name: "index_inventory_items_on_updated_by_id"
     t.check_constraint "quantity IS NULL OR quantity >= 0::numeric", name: "inventory_item_quantity_nonnegative"
     t.check_constraint "status::text = ANY (ARRAY['ok'::character varying::text, 'low'::character varying::text, 'out'::character varying::text])", name: "inventory_item_status"
+  end
+
+  create_table "outbox_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.integer "attempts", default: 0, null: false
+    t.datetime "available_at", null: false
+    t.datetime "created_at", null: false
+    t.string "event_type", limit: 120, null: false
+    t.uuid "household_id", null: false
+    t.string "last_error", limit: 255
+    t.datetime "occurred_at", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.datetime "published_at"
+    t.bigint "sequence", null: false
+    t.uuid "subject_id", null: false
+    t.string "subject_type", limit: 120, null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id", "sequence"], name: "index_outbox_events_on_household_id_and_sequence", unique: true
+    t.index ["household_id"], name: "index_outbox_events_on_household_id"
+    t.index ["published_at", "available_at", "created_at"], name: "index_outbox_events_for_dispatch"
+    t.check_constraint "attempts >= 0", name: "outbox_event_attempts_nonnegative"
+    t.check_constraint "sequence > 0", name: "outbox_event_sequence_positive"
   end
 
   create_table "shopping_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -232,6 +255,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_25_000100) do
   add_foreign_key "inventory_items", "households"
   add_foreign_key "inventory_items", "users", column: "created_by_id"
   add_foreign_key "inventory_items", "users", column: "updated_by_id"
+  add_foreign_key "outbox_events", "households"
   add_foreign_key "shopping_entries", "inventory_items"
   add_foreign_key "shopping_entries", "shopping_lists"
   add_foreign_key "shopping_entries", "users", column: "added_by_id"

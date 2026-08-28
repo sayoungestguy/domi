@@ -2,12 +2,15 @@
 
 Expo SDK 57 and React Native 0.86 client. It provides account registration,
 verification, secure sessions, shared-household management, inventory, the
-shared shopping list, and Phase 4 trip completion/history. Inventory reads are cached by household in AsyncStorage for a clearly
-labelled offline view; authentication credentials remain in SecureStore.
+shared shopping list, Phase 4 trip completion/history, and Phase 5 household
+realtime invalidation/reconnect recovery. Inventory and shopping reads are cached
+by household in AsyncStorage for a clearly labelled offline view; authentication
+credentials remain in SecureStore.
 
 From the repository root, run `bin/setup`, then `bin/dev`. By default, iOS and
 web use `http://localhost:3000`; the Android emulator uses
 `http://10.0.2.2:3000`. Override either with `EXPO_PUBLIC_API_URL`.
+The Action Cable URL is derived from that API URL (`ws`/`wss` plus `/cable`).
 
 Checks:
 

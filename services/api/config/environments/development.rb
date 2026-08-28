@@ -62,8 +62,13 @@ Rails.application.configure do
   # Annotate rendered view with file names.
   config.action_view.annotate_rendered_view_with_filenames = true
 
-  # Uncomment if you wish to allow Action Cable access from any origin.
-  # config.action_cable.disable_request_forgery_protection = true
+  # Expo runs on a different local origin from the API. Keep request forgery
+  # protection enabled while allowing only loopback, Android-emulator, and
+  # RFC1918 development origins.
+  config.action_cable.allowed_request_origins = [
+    %r{\Ahttps?://(?:localhost|127\.0\.0\.1|10\.0\.2\.2)(?::\d+)?\z},
+    %r{\Ahttps?://(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})(?::\d+)?\z}
+  ]
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true

@@ -34,10 +34,11 @@ import { Button, Card, Field, Message, sharedStyles } from '../../components/ui'
 import { colors, radii, spacing } from '../../theme/tokens';
 import { maxLength, quantity as validateQuantity, requiredMaxLength } from '../../validation/rules';
 import { useFormValidation } from '../../validation/useFormValidation';
+import { loadShoppingSnapshot, saveShoppingSnapshot } from '../../storage/shoppingCache';
 
-type Props = { household: Household };
+type Props = { household: Household; refreshSignal?: number };
 
-export function ShoppingScreen({ household }: Props) {
+export function ShoppingScreen({ household, refreshSignal = 0 }: Props) {
   const [list, setList] = useState<ShoppingList>();
   const [trips, setTrips] = useState<ShoppingTrip[]>([]);
   const [outItems, setOutItems] = useState<InventoryItem[]>([]);
@@ -52,6 +53,8 @@ export function ShoppingScreen({ household }: Props) {
   const [note, setNote] = useState('');
   const [restockLinkedItems, setRestockLinkedItems] = useState(true);
   const [completionKey, setCompletionKey] = useState<string>();
+  const [offline, setOffline] = useState(false);
+  const [savedAt, setSavedAt] = useState<string>();
   const validation = useFormValidation();
 
   const nameError = requiredMaxLength(name, 'Item name', 120);
@@ -67,31 +70,51 @@ export function ShoppingScreen({ household }: Props) {
     setList(listResponse.shoppingList);
     setOutItems(inventoryResponse.items);
     setTrips(tripsResponse.trips);
+    setOffline(false);
+    const savedAt = new Date().toISOString();
+    setSavedAt(savedAt);
+    void saveShoppingSnapshot({
+      householdId: household.id,
+      list: listResponse.shoppingList,
+      trips: tripsResponse.trips,
+      savedAt,
+    }).catch(() => undefined);
   }, [household.id]);
 
   useEffect(() => {
     let active = true;
-    void Promise.all([
-      getShoppingList(household.id),
-      listInventoryItems(household.id, { status: 'out' }),
-      getShoppingTrips(household.id),
-    ])
-      .then(([listResponse, inventoryResponse, tripsResponse]) => {
+    void (async () => {
+      const cached = await loadShoppingSnapshot(household.id);
+      if (active && cached) {
+        setList(cached.list);
+        setTrips(cached.trips);
+        setSavedAt(cached.savedAt);
+      }
+      try {
+        await refresh();
+      } catch (loadError) {
         if (!active) return;
-        setList(listResponse.shoppingList);
-        setOutItems(inventoryResponse.items);
-        setTrips(tripsResponse.trips);
-      })
-      .catch((loadError) => {
-        if (active) setError(errorMessage(loadError));
-      })
-      .finally(() => {
+        if (cached) {
+          setOffline(true);
+        } else {
+          setError(errorMessage(loadError));
+        }
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    })();
     return () => {
       active = false;
     };
-  }, [household.id]);
+  }, [household.id, refresh]);
+
+  useEffect(() => {
+    if (refreshSignal === 0) return;
+    const timer = setTimeout(() => {
+      void refresh().catch(() => setOffline(true));
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [refresh, refreshSignal]);
 
   const remaining = useMemo(
     () => list?.entries.filter((entry) => !entry.purchased) ?? [],
@@ -194,7 +217,16 @@ export function ShoppingScreen({ household }: Props) {
     const response = await completeShoppingTrip(household.id, restockLinkedItems, key);
     setCompletionKey(undefined);
     setList(response.shoppingList);
-    setTrips((current) => [response.trip, ...current.filter((trip) => trip.id !== response.trip.id)]);
+    const updatedTrips = [response.trip, ...trips.filter((trip) => trip.id !== response.trip.id)];
+    setTrips(updatedTrips);
+    const completedAt = new Date().toISOString();
+    setSavedAt(completedAt);
+    void saveShoppingSnapshot({
+      householdId: household.id,
+      list: response.shoppingList,
+      trips: updatedTrips,
+      savedAt: completedAt,
+    }).catch(() => undefined);
     const restockedIds = new Set(
       response.trip.items
         .filter((item) => item.restocked)
@@ -229,6 +261,12 @@ export function ShoppingScreen({ household }: Props) {
 
   return (
     <View style={sharedStyles.stack}>
+      {offline ? (
+        <Message type="error">
+          You’re offline. Showing shopping saved{' '}
+          {savedAt ? new Date(savedAt).toLocaleString() : 'earlier'}; changes are not queued.
+        </Message>
+      ) : null}
       {notice ? <Message type="success">{notice}</Message> : null}
       {error ? <Message type="error">{error}</Message> : null}
 
