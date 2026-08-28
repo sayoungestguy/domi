@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_22_000200) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_25_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -165,6 +165,43 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_22_000200) do
     t.index ["household_id"], name: "index_shopping_lists_on_household_id", unique: true
   end
 
+  create_table "shopping_trip_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "checked_at", null: false
+    t.datetime "created_at", null: false
+    t.uuid "inventory_item_id"
+    t.citext "name", null: false
+    t.text "note"
+    t.decimal "quantity", precision: 12, scale: 3
+    t.boolean "restocked", default: false, null: false
+    t.uuid "shopping_trip_id", null: false
+    t.uuid "source_entry_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["inventory_item_id"], name: "index_shopping_trip_items_on_inventory_item_id"
+    t.index ["shopping_trip_id"], name: "index_shopping_trip_items_on_shopping_trip_id"
+    t.index ["source_entry_id"], name: "index_shopping_trip_items_on_source_entry_id", unique: true
+    t.check_constraint "quantity IS NULL OR quantity >= 0::numeric", name: "shopping_trip_item_quantity_nonnegative"
+  end
+
+  create_table "shopping_trips", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "completed_at", null: false
+    t.uuid "completed_by_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "household_id", null: false
+    t.string "idempotency_key", limit: 255, null: false
+    t.integer "purchased_count", null: false
+    t.boolean "restock_inventory_items", default: false, null: false
+    t.integer "restocked_count", default: 0, null: false
+    t.uuid "shopping_list_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["completed_by_id"], name: "index_shopping_trips_on_completed_by_id"
+    t.index ["household_id", "completed_at"], name: "index_shopping_trips_on_household_and_completed_at"
+    t.index ["household_id"], name: "index_shopping_trips_on_household_id"
+    t.index ["shopping_list_id", "idempotency_key"], name: "index_shopping_trips_on_list_and_idempotency", unique: true
+    t.index ["shopping_list_id"], name: "index_shopping_trips_on_shopping_list_id"
+    t.check_constraint "purchased_count > 0", name: "shopping_trip_purchased_count_positive"
+    t.check_constraint "restocked_count >= 0 AND restocked_count <= purchased_count", name: "shopping_trip_restocked_count_valid"
+  end
+
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", null: false
@@ -200,4 +237,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_22_000200) do
   add_foreign_key "shopping_entries", "users", column: "added_by_id"
   add_foreign_key "shopping_entries", "users", column: "updated_by_id"
   add_foreign_key "shopping_lists", "households"
+  add_foreign_key "shopping_trip_items", "inventory_items"
+  add_foreign_key "shopping_trip_items", "shopping_entries", column: "source_entry_id"
+  add_foreign_key "shopping_trip_items", "shopping_trips"
+  add_foreign_key "shopping_trips", "households"
+  add_foreign_key "shopping_trips", "shopping_lists"
+  add_foreign_key "shopping_trips", "users", column: "completed_by_id"
 end

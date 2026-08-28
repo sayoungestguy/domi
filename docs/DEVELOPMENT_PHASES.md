@@ -4,7 +4,7 @@
 **Date:** 2026-08-19  
 **Applies to:** MVP development and post-MVP sequencing
 
-**Progress:** Phases 0–2 complete; Phase 3 is implemented with manual acceptance pending.
+**Progress:** Phases 0–2 complete; Phases 3–4 are implemented with manual acceptance pending.
 
 ## 1. Delivery decision
 
@@ -339,6 +339,6 @@ they are not silently deferred.
 
 ## 14. Immediate next step
 
-Begin Phase 0 by recording runtime/toolchain decisions, generating the Rails and
-React Native applications, and proving one thin connection from the mobile app
-to the API health endpoint through CI.
+Complete the Phase 3 and Phase 4 physical-device acceptance walkthroughs with
+two household members. Record any findings before beginning Phase 5 realtime
+and resilience work; unresolved acceptance failures remain explicit blockers.

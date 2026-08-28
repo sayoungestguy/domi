@@ -130,3 +130,25 @@ export type ShoppingList = {
   autoAddOutItems: boolean;
   updatedAt: string | null;
 };
+
+export type ShoppingTripItem = {
+  id: string;
+  sourceEntryId: string;
+  inventoryItemId: string | null;
+  name: string;
+  quantity: number | null;
+  note: string | null;
+  checkedAt: string;
+  restocked: boolean;
+};
+
+export type ShoppingTrip = {
+  id: string;
+  householdId: string;
+  completedAt: string;
+  completedBy: User;
+  restockInventoryItems: boolean;
+  purchasedCount: number;
+  restockedCount: number;
+  items: ShoppingTripItem[];
+};

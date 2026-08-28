@@ -29,6 +29,11 @@ module ActivitySerializer
     when "shopping.entry_unchecked" then "#{actor} put #{name} back on the list."
     when "shopping.entry_removed" then "#{actor} removed #{name} from shopping."
     when "shopping.preference_updated" then "#{actor} changed the shopping preference."
+    when "shopping.trip_completed"
+      count = activity.metadata.fetch("itemCount", 0)
+      restocked = activity.metadata.fetch("restockedCount", 0)
+      suffix = restocked.positive? ? " and restocked #{restocked}" : ""
+      "#{actor} finished shopping with #{count} #{'item'.pluralize(count)}#{suffix}."
     else "#{actor} changed #{name}."
     end
   end

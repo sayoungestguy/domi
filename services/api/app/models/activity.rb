@@ -11,6 +11,7 @@ class Activity < ApplicationRecord
     shopping.entry_unchecked
     shopping.entry_removed
     shopping.preference_updated
+    shopping.trip_completed
   ].freeze
 
   belongs_to :household

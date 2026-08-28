@@ -1,5 +1,5 @@
 import { apiRequest } from './client';
-import type { ShoppingEntry, ShoppingList } from './types';
+import type { ShoppingEntry, ShoppingList, ShoppingTrip } from './types';
 
 export type ShoppingEntryInput = {
   name?: string;
@@ -12,10 +12,26 @@ export function getShoppingList(householdId: string): Promise<{ shoppingList: Sh
   return apiRequest(`/api/v1/households/${householdId}/shopping-list`);
 }
 
+export function getShoppingTrips(householdId: string): Promise<{ trips: ShoppingTrip[] }> {
+  return apiRequest(`/api/v1/households/${householdId}/shopping-trips`);
+}
+
+export function completeShoppingTrip(
+  householdId: string,
+  restockInventoryItems: boolean,
+  idempotencyKey: string,
+): Promise<{ trip: ShoppingTrip; shoppingList: ShoppingList }> {
+  return apiRequest(`/api/v1/households/${householdId}/shopping-list/complete`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+    body: { restockInventoryItems },
+  });
+}
+
 export function createShoppingEntry(
   householdId: string,
   input: ShoppingEntryInput,
-  idempotencyKey = createIdempotencyKey(),
+  idempotencyKey = createShoppingIdempotencyKey(),
 ): Promise<{ entry: ShoppingEntry }> {
   return apiRequest(`/api/v1/households/${householdId}/shopping-list/entries`, {
     method: 'POST',
@@ -71,6 +87,6 @@ export function updateShoppingPreference(
   });
 }
 
-function createIdempotencyKey() {
+export function createShoppingIdempotencyKey() {
   return `mobile-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }

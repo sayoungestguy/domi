@@ -1,7 +1,8 @@
 # Contracts
 
 `openapi.yaml` is the versioned contract between the Rails API and its clients.
-The first contract covers the Phase 0 health slice. API request tests verify the
-runtime behavior, while a contract test ensures the checked-in schema remains
-present and versioned. Generated client types will be added when the first
-business resources are specified in Phase 1.
+Version 1.4.0 covers the system, authentication, household, inventory, shopping,
+and completed-trip APIs through Phase 4. API integration tests verify runtime
+behavior, while the contract test checks versioning, local references, and the
+complete path inventory. Generated client types remain a future improvement;
+the mobile types are maintained alongside the checked-in contract today.
