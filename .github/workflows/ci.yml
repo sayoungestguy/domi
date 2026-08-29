@@ -1,65 +1,272 @@
 name: CI
 
-on:
+"on":
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  api:
+  workflow-validation:
+    name: Workflow configuration
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: services/api
-    services:
-      postgres:
-        image: postgres:18.3
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.4.10
-          bundler-cache: true
-          working-directory: services/api
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Validate CI/CD configuration
+        run: bin/validate-ci
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TEST_DATABASE_URL: postgresql://domi:domi_local_only@postgres:5432/domi_test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Prepare report directory
+        run: mkdir -p reports/backend
+
+      - name: Build API test image
+        run: docker compose build api
+
+      - name: Start PostgreSQL
+        run: docker compose up --detach --wait postgres
+
       - name: Prepare test database
-        env:
-          RAILS_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/domi_test
-        run: bin/rails db:prepare
-      - name: Test, lint, and scan API
-        env:
-          RAILS_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/domi_test
-        run: bin/ci
+        run: >-
+          docker compose run --rm
+          -e RAILS_ENV=test
+          -e DATABASE_URL="$TEST_DATABASE_URL"
+          api bin/rails db:prepare
+
+      - name: Run Rails tests, quality, and security gates
+        shell: bash
+        run: |
+          set -o pipefail
+          docker compose run --rm \
+            -e RAILS_ENV=test \
+            -e DATABASE_URL="$TEST_DATABASE_URL" \
+            api bin/ci 2>&1 | tee reports/backend/ci.log
+
+      - name: Generate backend quality reports
+        if: always()
+        continue-on-error: true
+        run: |
+          docker compose run --rm \
+            -e RAILS_ENV=test \
+            -e DATABASE_URL="$TEST_DATABASE_URL" \
+            api bin/rubocop --format json \
+            --out /workspace/reports/backend/rubocop.json
+          docker compose run --rm \
+            -e RAILS_ENV=test \
+            -e DATABASE_URL="$TEST_DATABASE_URL" \
+            api bin/brakeman --quiet --no-pager --format json \
+            --output /workspace/reports/backend/brakeman.json
+
+      - name: Upload backend reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-reports-${{ github.run_id }}
+          path: reports/backend
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop backend services
+        if: always()
+        run: docker compose down --volumes
 
   mobile:
+    name: Mobile
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/mobile
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
         with:
           node-version: 24.18.0
           cache: npm
           cache-dependency-path: apps/mobile/package-lock.json
-      - run: npm ci
-      - run: npm run check
+
+      - name: Install mobile dependencies
+        run: npm --prefix apps/mobile ci
+
+      - name: Prepare report directory
+        run: mkdir -p reports/mobile
+
+      - name: Run mobile tests with coverage
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix apps/mobile test -- \
+            --coverage \
+            --coverageDirectory=coverage \
+            --coverageReporters=html \
+            --coverageReporters=lcov \
+            --coverageReporters=text-summary \
+            2>&1 | tee reports/mobile/jest.log
+
+      - name: Run TypeScript type checking
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix apps/mobile run typecheck 2>&1 | tee reports/mobile/typecheck.log
+
       - name: Validate Expo dependency compatibility
+        working-directory: apps/mobile
         run: npx expo install --check
-      - name: Audit production dependencies for critical advisories
-        run: npm run audit
+
+      - name: Run ESLint and write JSON report
+        working-directory: apps/mobile
+        run: npx eslint . --format json --output-file ../../reports/mobile/eslint.json
+
+      - name: Audit production dependencies
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix apps/mobile audit --omit=dev --audit-level=critical --json \
+            2>&1 | tee reports/mobile/npm-audit.json
+
+      - name: Build iOS JavaScript bundle
+        run: npm --prefix apps/mobile run bundle:check
+
+      - name: Upload mobile quality reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mobile-reports-${{ github.run_id }}
+          path: |
+            reports/mobile
+            apps/mobile/coverage
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload mobile bundle
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mobile-ios-bundle-${{ github.sha }}
+          path: apps/mobile/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  production-build:
+    name: Production API image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build production API image
+        uses: docker/build-push-action@v7
+        with:
+          context: services/api
+          file: services/api/Dockerfile
+          push: false
+          tags: domi-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: |
+            apps/mobile/package-lock.json
+            apps/e2e/package-lock.json
+
+      - name: Install application dependencies
+        run: |
+          npm --prefix apps/mobile ci
+          npm --prefix apps/e2e ci
+
+      - name: Install Chromium and operating-system dependencies
+        working-directory: apps/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright scenarios
+        run: npm run e2e
+
+      - name: Upload Playwright report and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: |
+            apps/e2e/playwright-report
+            apps/e2e/test-results
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop E2E services
+        if: always()
+        run: docker compose down --volumes
+
+  ci-result:
+    name: Required CI result
+    if: always()
+    needs:
+      - workflow-validation
+      - backend
+      - mobile
+      - production-build
+      - e2e
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write run summary
+        run: |
+          {
+            echo "## Domi CI result"
+            echo "| Gate | Result |"
+            echo "| --- | --- |"
+            echo "| Workflow configuration | ${{ needs.workflow-validation.result }} |"
+            echo "| Backend | ${{ needs.backend.result }} |"
+            echo "| Mobile | ${{ needs.mobile.result }} |"
+            echo "| Production API image | ${{ needs.production-build.result }} |"
+            echo "| Playwright E2E | ${{ needs.e2e.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce all required gates
+        env:
+          WORKFLOW_RESULT: ${{ needs.workflow-validation.result }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          MOBILE_RESULT: ${{ needs.mobile.result }}
+          BUILD_RESULT: ${{ needs.production-build.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+        run: |
+          for result in \
+            "$WORKFLOW_RESULT" \
+            "$BACKEND_RESULT" \
+            "$MOBILE_RESULT" \
+            "$BUILD_RESULT" \
+            "$E2E_RESULT"; do
+            test "$result" = "success"
+          done

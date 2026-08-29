@@ -36,6 +36,7 @@ microservices prematurely.
 - [Design system](docs/DESIGN_SYSTEM.md)
 - [Technical design](docs/TECHNICAL_DESIGN.md)
 - [Playwright E2E plan](docs/testing/PLAYWRIGHT_E2E_PLAN.md)
+- [CI/CD operating guide](docs/operations/CI_CD.md)
 
 ## Local development target
 
@@ -83,5 +84,10 @@ npm run e2e
 
 The suite starts an Expo web server and a Dockerized Rails API backed by the
 dedicated `domi_e2e` PostgreSQL database. It does not modify development data.
+
+GitHub Actions runs the backend, mobile, production-image, and Playwright gates
+for pull requests and `main`. A successful `main` run publishes the tested API
+image to GitHub Container Registry; deployment to UAT remains an explicit next
+step once its host and secrets are configured.
 
 Do not add production services merely because a reserved directory exists.

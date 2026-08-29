@@ -15,6 +15,7 @@
 *.log
 coverage/
 playwright-report/
+reports/
 test-results/
 tmp/
 
