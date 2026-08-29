@@ -38,6 +38,8 @@ Rails.application.routes.draw do
         resources :shopping_trips, only: :index, path: "shopping-trips"
         resource :shopping_preference, only: :update, path: "shopping-preference",
           controller: "shopping_preferences"
+        resource :realtime_state, only: :show, path: "realtime-state",
+          controller: "realtime_states"
       end
       post "invitations/accept", to: "invitations#accept"
     end

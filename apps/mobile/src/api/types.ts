@@ -152,3 +152,24 @@ export type ShoppingTrip = {
   restockedCount: number;
   items: ShoppingTripItem[];
 };
+
+export type RealtimeState = {
+  householdId: string;
+  currentSequence: number;
+};
+
+export type HouseholdChangedEvent = {
+  type: 'household.changed';
+  schemaVersion: 1;
+  eventId: string;
+  householdId: string;
+  sequence: number;
+  occurredAt: string;
+  resource: 'inventory' | 'shopping';
+  action: string;
+  subject: {
+    type: string;
+    id: string;
+    version: number | null;
+  };
+};

@@ -11,7 +11,17 @@ module Api
 
       def create
         household = find_household!
-        category = household.categories.create!(category_params)
+        category = Category.transaction do
+          record = household.categories.create!(category_params)
+          Activities::Record.call(
+            household:,
+            actor: current_user,
+            action: "inventory.category_created",
+            subject: record,
+            metadata: { itemName: record.name }
+          )
+          record
+        end
         render json: { category: CategorySerializer.render(category) }, status: :created
       rescue ActiveRecord::RecordNotUnique
         duplicate_name!
@@ -20,7 +30,17 @@ module Api
       def update
         household = find_household!
         category = household.categories.active.find(params[:id])
-        category.update!(category_params)
+        Category.transaction do
+          category.lock!
+          category.update!(category_params)
+          Activities::Record.call(
+            household:,
+            actor: current_user,
+            action: "inventory.category_updated",
+            subject: category,
+            metadata: { itemName: category.name }
+          )
+        end
         render json: { category: CategorySerializer.render(category) }
       rescue ActiveRecord::RecordNotUnique
         duplicate_name!

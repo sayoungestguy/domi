@@ -7,3 +7,4 @@ const developmentBaseUrl = Platform.select({
 });
 
 export const apiBaseUrl = configuredBaseUrl ?? developmentBaseUrl;
+export const cableUrl = `${apiBaseUrl.replace(/^http/, 'ws')}/cable`;

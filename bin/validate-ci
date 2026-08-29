@@ -1,0 +1,54 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "yaml"
+
+ROOT = File.expand_path("..", __dir__)
+
+def load_workflow(name)
+  path = File.join(ROOT, ".github", "workflows", name)
+  abort("Missing workflow: #{path}") unless File.file?(path)
+
+  YAML.safe_load(File.read(path), aliases: true, filename: path)
+rescue Psych::SyntaxError => error
+  abort("Invalid YAML in #{name}: #{error.message}")
+end
+
+def assert(condition, message)
+  abort(message) unless condition
+end
+
+ci = load_workflow("ci.yml")
+publish = load_workflow("publish-api.yml")
+
+assert(ci["name"] == "CI", "ci.yml must retain the CI workflow name used by delivery")
+assert(ci.fetch("on").key?("pull_request"), "CI must run for pull requests")
+assert(ci.fetch("on").fetch("push").fetch("branches").include?("main"), "CI must run on main")
+
+required_jobs = %w[workflow-validation backend mobile production-build e2e ci-result]
+missing_jobs = required_jobs - ci.fetch("jobs").keys
+assert(missing_jobs.empty?, "CI is missing required jobs: #{missing_jobs.join(', ')}")
+
+ci_text = File.read(File.join(ROOT, ".github", "workflows", "ci.yml"))
+assert(ci_text.include?("npm run e2e"), "CI must execute the Playwright suite")
+assert(ci_text.include?("docker/build-push-action@"), "CI must build the production API image")
+assert(ci_text.scan("actions/upload-artifact@").length >= 3, "CI must publish test and quality reports")
+
+workflow_run = publish.fetch("on").fetch("workflow_run")
+assert(workflow_run.fetch("workflows").include?("CI"), "Delivery must depend on the CI workflow")
+assert(publish.fetch("permissions")["packages"] == "write", "Delivery needs package write permission")
+
+publish_text = File.read(File.join(ROOT, ".github", "workflows", "publish-api.yml"))
+assert(publish_text.include?("workflow_run.conclusion == 'success'"), "Delivery must require successful CI")
+assert(publish_text.include?("workflow_run.head_branch == 'main'"), "Delivery must only publish main")
+assert(publish_text.include?("ghcr.io"), "Delivery must publish to GitHub Container Registry")
+
+[ci_text, publish_text].each do |workflow_text|
+  workflow_text.scan(/uses:\s+([^\s]+)/).flatten.each do |action|
+    next if action.start_with?("./")
+
+    assert(action.match?(/@v\d+\z/), "Action must use a versioned major tag: #{action}")
+  end
+end
+
+puts "CI/CD workflows are valid."

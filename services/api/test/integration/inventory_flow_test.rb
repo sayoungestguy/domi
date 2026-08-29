@@ -35,8 +35,10 @@ class InventoryFlowTest < ActionDispatch::IntegrationTest
     assert_equal "low", response_json.dig("item", "status")
 
     activities = household.activities.includes(:actor).order(:created_at)
-    assert_equal %w[inventory.item_created inventory.status_changed], activities.pluck(:action)
-    assert_equal [ owner.id, member.id ], activities.pluck(:actor_id)
+    assert_equal %w[
+      inventory.category_created inventory.item_created inventory.status_changed
+    ], activities.pluck(:action)
+    assert_equal [ owner.id, owner.id, member.id ], activities.pluck(:actor_id)
     assert_equal "Alex marked Rice LOW.", ActivitySerializer.render(activities.last).fetch(:message)
   end
 

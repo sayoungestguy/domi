@@ -127,8 +127,8 @@ export function Message({ type, children }: { type: 'error' | 'success'; childre
   );
 }
 
-export function Card({ children }: { children: ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
+export function Card({ children, testID }: { children: ReactNode; testID?: string }) {
+  return <View style={styles.card} testID={testID}>{children}</View>;
 }
 
 export const sharedStyles = StyleSheet.create({

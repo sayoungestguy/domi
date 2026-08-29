@@ -8,6 +8,8 @@ import { AuthScreen, type AuthIntent } from '../features/auth/AuthScreen';
 import { HouseholdsScreen } from '../features/households/HouseholdsScreen';
 import { clearSession, loadSession, saveSession } from '../storage/sessionStore';
 import { clearInventorySnapshots } from '../storage/inventoryCache';
+import { clearRealtimeCursors } from '../storage/realtimeCursor';
+import { clearShoppingSnapshots } from '../storage/shoppingCache';
 import { colors, spacing } from '../theme/tokens';
 
 type AuthState =
@@ -21,7 +23,7 @@ export function AppRoot() {
 
   useEffect(() => {
     const unsubscribeUnauthorized = setUnauthorizedHandler(() => {
-      void clearInventorySnapshots();
+      void clearLocalHouseholdState();
       setAuthState({ status: 'signed-out' });
     });
 
@@ -70,7 +72,7 @@ export function AppRoot() {
       await signOut();
     } finally {
       await clearSession();
-      await clearInventorySnapshots();
+      await clearLocalHouseholdState();
       setIntent(undefined);
       setAuthState({ status: 'signed-out' });
     }
@@ -98,6 +100,14 @@ export function AppRoot() {
       user={authState.user}
     />
   );
+}
+
+async function clearLocalHouseholdState() {
+  await Promise.all([
+    clearInventorySnapshots(),
+    clearShoppingSnapshots(),
+    clearRealtimeCursors(),
+  ]);
 }
 
 function parseAuthIntent(url: string): AuthIntent | undefined {

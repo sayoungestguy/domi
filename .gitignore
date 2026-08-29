@@ -14,6 +14,9 @@
 # Logs and coverage
 *.log
 coverage/
+playwright-report/
+reports/
+test-results/
 tmp/
 
 # JavaScript / React Native
@@ -49,4 +52,3 @@ deps/
 .terraform/
 *.tfstate
 *.tfstate.*
-

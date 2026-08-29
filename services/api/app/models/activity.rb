@@ -5,6 +5,8 @@ class Activity < ApplicationRecord
     inventory.status_changed
     inventory.item_archived
     inventory.item_restored
+    inventory.category_created
+    inventory.category_updated
     shopping.entry_added
     shopping.entry_updated
     shopping.entry_checked

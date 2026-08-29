@@ -23,6 +23,8 @@ module ActivitySerializer
       "#{actor} marked #{name} #{activity.metadata.fetch('toStatus', '').upcase}."
     when "inventory.item_archived" then "#{actor} archived #{name}."
     when "inventory.item_restored" then "#{actor} restored #{name}."
+    when "inventory.category_created" then "#{actor} created the #{name} category."
+    when "inventory.category_updated" then "#{actor} updated the #{name} category."
     when "shopping.entry_added" then "#{actor} added #{name} to shopping."
     when "shopping.entry_updated" then "#{actor} updated #{name} on shopping."
     when "shopping.entry_checked" then "#{actor} checked off #{name}."

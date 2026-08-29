@@ -339,6 +339,8 @@ they are not silently deferred.
 
 ## 14. Immediate next step
 
-Complete the Phase 3 and Phase 4 physical-device acceptance walkthroughs with
-two household members. Record any findings before beginning Phase 5 realtime
-and resilience work; unresolved acceptance failures remain explicit blockers.
+Complete the Phase 3–5 physical-device acceptance walkthroughs with two household
+members, including normal realtime propagation, a missed-event gap, reconnection,
+and shopping completion retry. Then implement the browser coverage described in
+`testing/PLAYWRIGHT_E2E_PLAN.md`. Record unresolved acceptance failures as
+explicit blockers before Phase 6 notifications and MVP hardening.

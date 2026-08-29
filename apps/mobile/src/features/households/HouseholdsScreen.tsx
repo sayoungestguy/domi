@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '../../api/client';
 import {
@@ -17,8 +17,10 @@ import {
 } from '../../api/households';
 import type { Household, Invitation, Membership, User } from '../../api/types';
 import { BrandHeader, Button, Card, Field, Message, Screen, sharedStyles } from '../../components/ui';
+import { confirmAction } from '../../components/confirmAction';
 import { InventoryScreen } from '../inventory/InventoryScreen';
 import { ShoppingScreen } from '../shopping/ShoppingScreen';
+import { useHouseholdRealtime } from '../../realtime/useHouseholdRealtime';
 import { colors, radii, spacing } from '../../theme/tokens';
 import { required, requiredMaxLength } from '../../validation/rules';
 import { useFormValidation } from '../../validation/useFormValidation';
@@ -57,6 +59,7 @@ export function HouseholdsScreen({
     () => households.find((household) => household.id === selectedId),
     [households, selectedId],
   );
+  const realtime = useHouseholdRealtime(selectedId);
 
   const handleError = useCallback((actionError: unknown) => {
     setError(
@@ -75,6 +78,7 @@ export function HouseholdsScreen({
       }
       return response.households[0]?.id;
     });
+    return response.households;
   }, []);
 
   const loadHouseholdDetails = useCallback(async (household: Household) => {
@@ -123,6 +127,19 @@ export function HouseholdsScreen({
   }, [handleError, selected]);
 
   useEffect(() => {
+    if (!selectedId || realtime.revision === 0) return;
+    const timer = setTimeout(() => {
+      void loadHouseholds()
+        .then((refreshed) => {
+          const current = refreshed.find((household) => household.id === selectedId);
+          return current ? loadHouseholdDetails(current) : undefined;
+        })
+        .catch(handleError);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [handleError, loadHouseholdDetails, loadHouseholds, realtime.revision, selectedId]);
+
+  useEffect(() => {
     if (!initialJoinToken || processedJoinToken.current === initialJoinToken) {
       return;
     }
@@ -154,20 +171,19 @@ export function HouseholdsScreen({
     }
   }
 
-  async function confirm(title: string, message: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      Alert.alert(title, message, [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-        { text: 'Continue', style: 'destructive', onPress: () => resolve(true) },
-      ]);
-    });
-  }
-
   return (
     <Screen>
       <BrandHeader title={`Hello, ${user.displayName}`} subtitle="Choose a home or create a new one." />
       {notice ? <Message type="success">{notice}</Message> : null}
       {error ? <Message type="error">{error}</Message> : null}
+      {realtime.status === 'disconnected' ? (
+        <Message type="error">
+          Live updates are unavailable. Domi will refresh this home when the connection returns.
+        </Message>
+      ) : null}
+      {realtime.status === 'gap' ? (
+        <Message type="error">Domi detected missed updates and refreshed this home.</Message>
+      ) : null}
 
       {households.length > 0 ? (
         <View style={styles.householdPicker}>
@@ -213,10 +229,18 @@ export function HouseholdsScreen({
       ) : null}
 
       {selected && section === 'inventory' ? (
-        <InventoryScreen household={selected} key={`inventory-${selected.id}`} />
+        <InventoryScreen
+          household={selected}
+          key={`inventory-${selected.id}`}
+          refreshSignal={realtime.revision}
+        />
       ) : null}
       {selected && section === 'shopping' ? (
-        <ShoppingScreen household={selected} key={`shopping-${selected.id}`} />
+        <ShoppingScreen
+          household={selected}
+          key={`shopping-${selected.id}`}
+          refreshSignal={realtime.revision}
+        />
       ) : null}
 
       {selected && section === 'settings' ? (
@@ -269,7 +293,7 @@ export function HouseholdsScreen({
                       loading={busy === `transfer-${membership.id}`}
                       onPress={() =>
                         void runAction(`transfer-${membership.id}`, async () => {
-                          if (!(await confirm('Transfer ownership?', `${membership.user.displayName} will become the owner.`))) {
+                          if (!(await confirmAction({ title: 'Transfer ownership?', message: `${membership.user.displayName} will become the owner.`, confirmLabel: 'Continue', destructive: true }))) {
                             return;
                           }
                           await transferOwnership(selected.id, membership.id);
@@ -284,7 +308,7 @@ export function HouseholdsScreen({
                       loading={busy === `remove-${membership.id}`}
                       onPress={() =>
                         void runAction(`remove-${membership.id}`, async () => {
-                          if (!(await confirm('Remove member?', `${membership.user.displayName} will lose access to this home.`))) {
+                          if (!(await confirmAction({ title: 'Remove member?', message: `${membership.user.displayName} will lose access to this home.`, confirmLabel: 'Continue', destructive: true }))) {
                             return;
                           }
                           await removeMembership(selected.id, membership.id);
@@ -355,7 +379,7 @@ export function HouseholdsScreen({
               loading={busy === 'leave'}
               onPress={() =>
                 void runAction('leave', async () => {
-                  if (!(await confirm('Leave household?', 'You will need another invitation to rejoin.'))) {
+                  if (!(await confirmAction({ title: 'Leave household?', message: 'You will need another invitation to rejoin.', confirmLabel: 'Continue', destructive: true }))) {
                     return;
                   }
                   await leaveHousehold(selected.id);
