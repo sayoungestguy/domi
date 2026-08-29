@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Switch,
@@ -31,6 +30,7 @@ import type {
   ShoppingTrip,
 } from '../../api/types';
 import { Button, Card, Field, Message, sharedStyles } from '../../components/ui';
+import { confirmAction } from '../../components/confirmAction';
 import { colors, radii, spacing } from '../../theme/tokens';
 import { maxLength, quantity as validateQuantity, requiredMaxLength } from '../../validation/rules';
 import { useFormValidation } from '../../validation/useFormValidation';
@@ -182,30 +182,25 @@ export function ShoppingScreen({ household, refreshSignal = 0 }: Props) {
   }
 
   async function confirmRemove(entry: ShoppingEntry) {
-    return new Promise<boolean>((resolve) => {
-      Alert.alert('Remove from shopping?', `${entry.name} will leave this list.`, [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-        { text: 'Remove', style: 'destructive', onPress: () => resolve(true) },
-      ]);
+    return confirmAction({
+      title: 'Remove from shopping?',
+      message: `${entry.name} will leave this list.`,
+      confirmLabel: 'Remove',
+      destructive: true,
     });
   }
 
   async function confirmCompletion() {
-    return new Promise<boolean>((resolve) => {
-      const restockMessage = restockLinkedItems
-        ? 'Linked inventory will be marked OK.'
-        : 'Inventory statuses will stay unchanged.';
-      Alert.alert(
-        'Finish shopping?',
+    const restockMessage = restockLinkedItems
+      ? 'Linked inventory will be marked OK.'
+      : 'Inventory statuses will stay unchanged.';
+    return confirmAction({
+      title: 'Finish shopping?',
+      message:
         `${purchased.length} checked ${purchased.length === 1 ? 'item' : 'items'} will move to history. ` +
-          `${remaining.length} unchecked ${remaining.length === 1 ? 'item stays' : 'items stay'} on the list. ` +
-          restockMessage,
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Finish', onPress: () => resolve(true) },
-        ],
-        { cancelable: true, onDismiss: () => resolve(false) },
-      );
+        `${remaining.length} unchecked ${remaining.length === 1 ? 'item stays' : 'items stay'} on the list. ` +
+        restockMessage,
+      confirmLabel: 'Finish',
     });
   }
 
@@ -453,7 +448,7 @@ export function ShoppingScreen({ household, refreshSignal = 0 }: Props) {
         <Card>
           <Text style={sharedStyles.sectionTitle}>Recent trips</Text>
           {trips.map((trip) => (
-            <View key={trip.id} style={styles.tripRow}>
+            <View key={trip.id} style={styles.tripRow} testID="shopping-trip">
               <Text style={styles.entryName}>
                 {trip.purchasedCount} {trip.purchasedCount === 1 ? 'item' : 'items'} ·{' '}
                 {formatTripDate(trip.completedAt)}
@@ -490,7 +485,7 @@ function EntryRow({
     .filter(Boolean)
     .join(' · ');
   return (
-    <View style={styles.entryRow}>
+    <View style={styles.entryRow} testID="shopping-entry">
       <Pressable
         accessibilityHint={entry.purchased ? 'Returns this item to the remaining list' : 'Moves this item to Purchased'}
         accessibilityLabel={`${entry.name}, ${entry.purchased ? 'purchased' : 'not purchased'}`}

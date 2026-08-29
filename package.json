@@ -8,6 +8,9 @@
   "packageManager": "npm@11.19.0",
   "scripts": {
     "check": "npm --prefix apps/mobile run check",
+    "e2e": "npm --prefix apps/e2e test",
+    "e2e:headed": "npm --prefix apps/e2e run test:headed",
+    "e2e:install": "npm --prefix apps/e2e run install:browsers",
     "mobile": "npm --prefix apps/mobile start",
     "mobile:lint": "npm --prefix apps/mobile run lint",
     "mobile:typecheck": "npm --prefix apps/mobile run typecheck"

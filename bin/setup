@@ -11,5 +11,6 @@ docker compose up --detach postgres
 docker compose run --rm api bundle install
 docker compose run --rm api bin/rails db:prepare
 npm --prefix apps/mobile ci
+npm --prefix apps/e2e ci
 
 echo "Domi is ready. Run bin/dev to start the API and mobile app."

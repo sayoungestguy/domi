@@ -1,0 +1,22 @@
+{
+  "name": "@domi/e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npm run typecheck && playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "typecheck": "tsc --noEmit",
+    "install:browsers": "playwright install chromium webkit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "latest",
+    "@playwright/test": "latest",
+    "@types/node": "latest",
+    "typescript": "~6.0.3"
+  },
+  "engines": {
+    "node": ">=22.13 <25"
+  }
+}

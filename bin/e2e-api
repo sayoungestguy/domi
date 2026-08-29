@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$project_root"
+
+e2e_database_url="postgresql://domi:domi_local_only@postgres:5432/domi_e2e"
+
+docker compose build api
+docker compose up --detach postgres
+docker compose run --rm \
+  -e DATABASE_URL="$e2e_database_url" \
+  -e RAILS_ENV=development \
+  api bin/rails db:prepare
+
+exec docker compose run --rm -p 3100:3000 \
+  -e DATABASE_URL="$e2e_database_url" \
+  -e RAILS_ENV=development \
+  -e APP_VERSION=e2e \
+  api bin/rails server --binding 0.0.0.0 --port 3000

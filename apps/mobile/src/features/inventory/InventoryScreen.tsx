@@ -22,6 +22,7 @@ import type {
   InventoryStatus,
 } from '../../api/types';
 import { Button, Card, Field, Message, sharedStyles } from '../../components/ui';
+import { confirmAction } from '../../components/confirmAction';
 import {
   loadInventorySnapshot,
   saveInventorySnapshot,
@@ -203,11 +204,11 @@ export function InventoryScreen({ household, refreshSignal = 0 }: Props) {
   }
 
   async function confirmArchive(item: InventoryItem) {
-    return new Promise<boolean>((resolve) => {
-      Alert.alert('Archive item?', `${item.name} will leave the active inventory.`, [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-        { text: 'Archive', style: 'destructive', onPress: () => resolve(true) },
-      ]);
+    return confirmAction({
+      title: 'Archive item?',
+      message: `${item.name} will leave the active inventory.`,
+      confirmLabel: 'Archive',
+      destructive: true,
     });
   }
 
@@ -364,7 +365,7 @@ export function InventoryScreen({ household, refreshSignal = 0 }: Props) {
         </Card>
       ) : (
         items.map((item) => (
-          <Card key={item.id}>
+          <Card key={item.id} testID="inventory-item">
             <View style={styles.itemHeader}>
               <View style={styles.itemIdentity}>
                 <Text style={styles.itemName}>{item.name}</Text>

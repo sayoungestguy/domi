@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '../../api/client';
 import {
@@ -17,6 +17,7 @@ import {
 } from '../../api/households';
 import type { Household, Invitation, Membership, User } from '../../api/types';
 import { BrandHeader, Button, Card, Field, Message, Screen, sharedStyles } from '../../components/ui';
+import { confirmAction } from '../../components/confirmAction';
 import { InventoryScreen } from '../inventory/InventoryScreen';
 import { ShoppingScreen } from '../shopping/ShoppingScreen';
 import { useHouseholdRealtime } from '../../realtime/useHouseholdRealtime';
@@ -170,15 +171,6 @@ export function HouseholdsScreen({
     }
   }
 
-  async function confirm(title: string, message: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      Alert.alert(title, message, [
-        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-        { text: 'Continue', style: 'destructive', onPress: () => resolve(true) },
-      ]);
-    });
-  }
-
   return (
     <Screen>
       <BrandHeader title={`Hello, ${user.displayName}`} subtitle="Choose a home or create a new one." />
@@ -301,7 +293,7 @@ export function HouseholdsScreen({
                       loading={busy === `transfer-${membership.id}`}
                       onPress={() =>
                         void runAction(`transfer-${membership.id}`, async () => {
-                          if (!(await confirm('Transfer ownership?', `${membership.user.displayName} will become the owner.`))) {
+                          if (!(await confirmAction({ title: 'Transfer ownership?', message: `${membership.user.displayName} will become the owner.`, confirmLabel: 'Continue', destructive: true }))) {
                             return;
                           }
                           await transferOwnership(selected.id, membership.id);
@@ -316,7 +308,7 @@ export function HouseholdsScreen({
                       loading={busy === `remove-${membership.id}`}
                       onPress={() =>
                         void runAction(`remove-${membership.id}`, async () => {
-                          if (!(await confirm('Remove member?', `${membership.user.displayName} will lose access to this home.`))) {
+                          if (!(await confirmAction({ title: 'Remove member?', message: `${membership.user.displayName} will lose access to this home.`, confirmLabel: 'Continue', destructive: true }))) {
                             return;
                           }
                           await removeMembership(selected.id, membership.id);
@@ -387,7 +379,7 @@ export function HouseholdsScreen({
               loading={busy === 'leave'}
               onPress={() =>
                 void runAction('leave', async () => {
-                  if (!(await confirm('Leave household?', 'You will need another invitation to rejoin.'))) {
+                  if (!(await confirmAction({ title: 'Leave household?', message: 'You will need another invitation to rejoin.', confirmLabel: 'Continue', destructive: true }))) {
                     return;
                   }
                   await leaveHousehold(selected.id);

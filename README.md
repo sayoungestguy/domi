@@ -74,4 +74,14 @@ Run all local quality checks with:
 bin/check
 ```
 
+Install the Playwright browsers once, then run the isolated browser E2E suite:
+
+```sh
+npm run e2e:install
+npm run e2e
+```
+
+The suite starts an Expo web server and a Dockerized Rails API backed by the
+dedicated `domi_e2e` PostgreSQL database. It does not modify development data.
+
 Do not add production services merely because a reserved directory exists.

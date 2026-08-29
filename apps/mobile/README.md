@@ -21,6 +21,10 @@ npm run check
 The check gate runs Jest behavior tests, TypeScript, Expo lint, and an iOS
 production export. Run only the behavior tests with `npm test`.
 
+Expo web is also the browser surface for the root Playwright suite. Browser
+sessions use per-tab `sessionStorage`; native sessions continue to use
+SecureStore. Run the browser suite from the repository root with `npm run e2e`.
+
 Never put secrets in an `EXPO_PUBLIC_*` variable; Expo embeds those values in the
 client bundle. Authentication credentials are stored with `expo-secure-store`,
 not AsyncStorage. The registered development scheme is `domi://`, including:

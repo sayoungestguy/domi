@@ -59,6 +59,8 @@ when the app becomes active.
 - Production keeps same-origin protection by default. Set
   `ACTION_CABLE_ALLOWED_ORIGINS` to a comma-separated allowlist of HTTPS client
   origins when the deployed web client and API do not share an origin.
+- Cross-origin REST remains disabled in production unless
+  `CORS_ALLOWED_ORIGINS` explicitly lists the deployed HTTPS web origins.
 - Production uses Solid Cable and Solid Queue. The pending-outbox dispatcher
   runs every five seconds.
 - Subscription credentials are sent in the Action Cable subscription frame,

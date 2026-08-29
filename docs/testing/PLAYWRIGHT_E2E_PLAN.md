@@ -1,11 +1,11 @@
 # Playwright end-to-end test plan
 
-**Status:** Prepared for implementation after Phase 5
+**Status:** Baseline implemented; browser-matrix and extended cases remain
 **Scope baseline:** Phases 0–5
 
 ## Purpose and boundary
 
-Playwright will exercise the Expo web build against a real Rails API,
+Playwright exercises the Expo web build against a real Rails API,
 PostgreSQL, background worker, and Action Cable endpoint. It is the browser E2E
 layer for Domi's completed vertical slices; it does not replace Rails integration
 tests, Jest component tests, or physical iOS/Android acceptance.
@@ -17,34 +17,25 @@ the official documentation for [browser isolation](https://playwright.dev/docs/b
 [WebSocket routing](https://playwright.dev/docs/api/class-browsercontext#browser-context-route-web-socket),
 and [trace-based CI debugging](https://playwright.dev/docs/best-practices#debugging-on-ci).
 
-## Proposed test package
+## Implemented test package
 
-Create `apps/e2e` as a separate npm workspace only when implementing this plan:
+`apps/e2e` is an isolated npm package:
 
 ```text
 apps/e2e/
   package.json
   playwright.config.ts
-  fixtures/
-    api.ts
-    household.ts
-    users.ts
+  fixtures/domi.ts
   pages/
-    auth.page.ts
-    household.page.ts
     inventory.page.ts
     shopping.page.ts
   specs/
-    smoke.spec.ts
+    smoke-accessibility.spec.ts
     auth.spec.ts
-    households.spec.ts
-    inventory.spec.ts
-    shopping.spec.ts
-    completion.spec.ts
-    realtime.spec.ts
-    resilience.spec.ts
+    product-loop.spec.ts
+    realtime-resilience.spec.ts
     authorization.spec.ts
-    accessibility.spec.ts
+  scripts/users.ts
 ```
 
 Use TypeScript, role/label/test-id locators, and user-visible assertions. Page
@@ -56,13 +47,13 @@ business intent remain readable in spec files.
 The E2E environment runs the same services as UAT but uses an isolated test
 database:
 
-1. PostgreSQL is healthy and migrated.
-2. Rails serves HTTP and `/cable`; a Solid Queue process handles realtime jobs.
-3. Expo exports/serves the web application with its API URL set to Rails.
-4. A test-only Rails task resets the database and creates unique fixtures. It is
-   unavailable when `RAILS_ENV=production`.
-5. Verification, reset, and invitation tokens are retrieved through a test-only
-   fixture adapter or parsed from file-delivered mail—never by weakening the
+1. `bin/e2e-api` builds the API image, starts PostgreSQL, migrates the dedicated
+   `domi_e2e` database, and serves HTTP plus `/cable` on port 3100.
+2. Expo serves the web client on port 8082 with its API URL set to the E2E API.
+3. Accounts needed only as setup are created by an out-of-process Rails runner;
+   no fixture route is added to the application.
+4. The authentication scenario uses the real registration API and parses
+   development file-delivered verification/reset mail without weakening the
    production endpoint.
 
 Each test creates unique users/households and is order-independent. Begin with
@@ -94,6 +85,26 @@ The accessibility scan should use `@axe-core/playwright`, while retaining manual
 coverage because automated scans cannot find every accessibility problem, as the
 [official accessibility guide](https://playwright.dev/docs/accessibility-testing)
 notes.
+
+## Implemented baseline
+
+The Chromium suite currently automates:
+
+- API health, Expo shell, change-time validation, and WCAG A/AA axe scanning;
+- registration, file-mail verification, sign-out/sign-in, and password reset;
+- two-context household creation, invitation, join, and membership visibility;
+- inventory category/create/edit, optimistic conflict, status, search,
+  archive/restore, activity refresh, and realtime propagation;
+- shopping preference, automatic linked addition, manual add/edit/check/uncheck/
+  remove, subset completion, restock, immutable history, and idempotent retry
+  after deliberately losing a committed response;
+- a deliberately dropped cable event followed by gap-driven authoritative
+  convergence and a visibly stale offline shopping cache; and
+- outsider denial over both REST and an actual Action Cable subscription.
+
+Run it from the repository root with `npm run e2e`. Install browser binaries once
+with `npm run e2e:install`. Set `E2E_ALL_BROWSERS=1` to add the configured WebKit
+project after its browser runtime is installed.
 
 ## Realtime and failure injection
 
@@ -144,13 +155,13 @@ decision; do not make browser tests pretend to certify native behavior.
 
 ## Implementation sequence and completion criteria
 
-1. Add `apps/e2e`, configuration, service orchestration, and deterministic fixture
-   provisioning.
-2. Automate smoke/auth/household and the Phase 2–4 golden product loop.
-3. Add two-context authorization, optimistic-conflict, and idempotent-retry tests.
-4. Add realtime propagation, socket loss, gap, worker failure, and convergence.
-5. Add accessibility scans and the mobile-sized web project.
-6. Make Chromium critical E2E a required pull-request check; add WebKit nightly.
+1. [x] Add `apps/e2e`, service orchestration, and deterministic fixture provisioning.
+2. [x] Automate smoke/auth/household and the Phase 2–4 golden product loop.
+3. [x] Add authorization, optimistic-conflict, and idempotent-retry tests.
+4. [x] Add realtime propagation, message loss, gap recovery, and convergence.
+5. [ ] Add a mobile-sized project and expand signed-in accessibility scans.
+6. [ ] Make Chromium a required pull-request check and add WebKit nightly.
+7. [ ] Add a controlled worker/outbox outage scenario in CI/UAT.
 
 The plan is complete when every required scenario maps to an automated spec or
 an explicitly owned native checklist, the suite is repeatable from a clean
