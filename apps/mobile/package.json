@@ -19,7 +19,7 @@
     "@types/jest": "^29.5.14",
     "@types/rails__actioncable": "^8.0.3",
     "@types/react": "~19.2.2",
-    "eslint": "^9.39.5",
+    "eslint": "^10.9.1",
     "eslint-config-expo": "~57.0.2",
     "jest": "^29.7.0",
     "jest-expo": "~57.0.5",
