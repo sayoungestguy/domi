@@ -137,6 +137,8 @@ PATCH  /api/v1/households/:household_id/inventory-items/:id
 GET    /api/v1/households/:household_id/shopping-list
 POST   /api/v1/households/:household_id/shopping-trips
 GET    /api/v1/households/:household_id/activities
+GET    /api/v1/households/:household_id/notifications
+PATCH  /api/v1/households/:household_id/notification-preference
 ```
 
 Clients subscribe to one authorized household channel. Messages contain event
@@ -151,8 +153,9 @@ refetch; WebSocket delivery is an optimization, not the source of truth.
 - Multi-record business actions use database transactions.
 - Mutation endpoints that clients may retry accept an idempotency key.
 - An outbox row is committed in the same transaction as the domain change.
-- A background job publishes realtime updates, notifications, and analytics
-  events from the outbox, retrying safely.
+- A background job publishes realtime events from the outbox, retrying safely.
+- Private notifications are persisted for eligible recipients in the same
+  transaction as the source command; the realtime event prompts inbox refresh.
 - Consumers deduplicate by event ID.
 
 For ordinary edits, optimistic concurrency detects stale versions and returns a
@@ -211,7 +214,7 @@ delayed until compatibility is proven.
 All requests receive a request ID; background work propagates the request and
 event IDs. Emit structured logs, request/error rates, p50/p95/p99 latency,
 database pool saturation, job age/failures, outbox lag, WebSocket connections,
-and notification delivery failures. Error tracking includes release and
+and notification creation failures. Error tracking includes release and
 environment but filters private household content.
 
 Initial local-host objectives:

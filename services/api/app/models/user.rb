@@ -7,6 +7,11 @@ class User < ApplicationRecord
   has_many :household_memberships, dependent: :restrict_with_error
   has_many :households, through: :household_memberships
   has_many :activities, foreign_key: :actor_id, dependent: :restrict_with_error, inverse_of: :actor
+  has_many :received_notifications, class_name: "Notification", foreign_key: :recipient_id,
+    dependent: :delete_all, inverse_of: :recipient
+  has_many :sent_notifications, class_name: "Notification", foreign_key: :actor_id,
+    dependent: :restrict_with_error, inverse_of: :actor
+  has_many :notification_preferences, dependent: :delete_all
   has_many :added_shopping_entries, class_name: "ShoppingEntry", foreign_key: :added_by_id,
     dependent: :restrict_with_error, inverse_of: :added_by
   has_many :updated_shopping_entries, class_name: "ShoppingEntry", foreign_key: :updated_by_id,

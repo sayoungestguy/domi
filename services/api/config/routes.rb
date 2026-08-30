@@ -40,6 +40,12 @@ Rails.application.routes.draw do
           controller: "shopping_preferences"
         resource :realtime_state, only: :show, path: "realtime-state",
           controller: "realtime_states"
+        resources :notifications, only: :index do
+          patch :read, on: :member
+          patch "read-all", action: :read_all, on: :collection
+        end
+        resource :notification_preference, only: %i[show update], path: "notification-preference",
+          controller: "notification_preferences"
       end
       post "invitations/accept", to: "invitations#accept"
     end

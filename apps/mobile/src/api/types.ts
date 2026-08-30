@@ -165,11 +165,34 @@ export type HouseholdChangedEvent = {
   householdId: string;
   sequence: number;
   occurredAt: string;
-  resource: 'inventory' | 'shopping';
+  resource: 'household' | 'inventory' | 'shopping';
   action: string;
   subject: {
     type: string;
     id: string;
     version: number | null;
   };
+};
+
+export type NotificationKind =
+  | 'member_joined'
+  | 'shopping_entry_added'
+  | 'shopping_trip_completed';
+
+export type HouseholdNotification = {
+  id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  readAt: string | null;
+  actor: User;
+  subjectType: string;
+  subjectId: string;
+  createdAt: string;
+};
+
+export type NotificationPreference = {
+  memberJoined: boolean;
+  shoppingEntryAdded: boolean;
+  shoppingTripCompleted: boolean;
 };

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_29_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_30_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -134,6 +134,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_29_000100) do
     t.check_constraint "status::text = ANY (ARRAY['ok'::character varying::text, 'low'::character varying::text, 'out'::character varying::text])", name: "inventory_item_status"
   end
 
+  create_table "notification_preferences", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "household_id", null: false
+    t.boolean "member_joined", default: true, null: false
+    t.boolean "shopping_entry_added", default: true, null: false
+    t.boolean "shopping_trip_completed", default: true, null: false
+    t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
+    t.index ["household_id", "user_id"], name: "index_notification_preferences_on_household_id_and_user_id", unique: true
+    t.index ["household_id"], name: "index_notification_preferences_on_household_id"
+    t.index ["user_id"], name: "index_notification_preferences_on_user_id"
+  end
+
+  create_table "notifications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "actor_id", null: false
+    t.string "body", limit: 500, null: false
+    t.datetime "created_at", null: false
+    t.uuid "household_id", null: false
+    t.string "kind", limit: 80, null: false
+    t.datetime "read_at"
+    t.uuid "recipient_id", null: false
+    t.uuid "subject_id", null: false
+    t.string "subject_type", limit: 120, null: false
+    t.string "title", limit: 120, null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_notifications_on_actor_id"
+    t.index ["household_id", "recipient_id", "kind", "subject_type", "subject_id"], name: "index_notifications_on_delivery_identity", unique: true
+    t.index ["household_id"], name: "index_notifications_on_household_id"
+    t.index ["recipient_id", "created_at"], name: "index_notifications_on_recipient_id_and_created_at"
+    t.index ["recipient_id"], name: "index_notifications_on_recipient_id"
+    t.check_constraint "kind::text = ANY (ARRAY['member_joined'::character varying, 'shopping_entry_added'::character varying, 'shopping_trip_completed'::character varying]::text[])", name: "notification_kind"
+  end
+
   create_table "outbox_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.integer "attempts", default: 0, null: false
     t.datetime "available_at", null: false
@@ -255,6 +288,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_29_000100) do
   add_foreign_key "inventory_items", "households"
   add_foreign_key "inventory_items", "users", column: "created_by_id"
   add_foreign_key "inventory_items", "users", column: "updated_by_id"
+  add_foreign_key "notification_preferences", "households"
+  add_foreign_key "notification_preferences", "users"
+  add_foreign_key "notifications", "households"
+  add_foreign_key "notifications", "users", column: "actor_id"
+  add_foreign_key "notifications", "users", column: "recipient_id"
   add_foreign_key "outbox_events", "households"
   add_foreign_key "shopping_entries", "inventory_items"
   add_foreign_key "shopping_entries", "shopping_lists"

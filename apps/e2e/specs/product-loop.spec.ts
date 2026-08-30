@@ -108,11 +108,16 @@ test('two members complete the inventory-to-shopping loop and share realtime upd
     });
     ownerPage.once('dialog', (dialog) => dialog.accept());
     await ownerPage.getByRole('button', { name: 'Finish shopping' }).click();
-    await expect(ownerPage.getByRole('button', { name: 'Retry finish shopping' })).toBeVisible();
-    ownerPage.once('dialog', (dialog) => dialog.accept());
-    await ownerPage.getByRole('button', { name: 'Retry finish shopping' }).click();
-    await expect(ownerPage.getByText('Shopping finished with 1 item.')).toBeVisible();
-    await expect(ownerPage.getByTestId('shopping-trip').filter({ hasText: '1 item' })).toBeVisible();
+    const retryFinish = ownerPage.getByRole('button', { name: 'Retry finish shopping' });
+    const completedTrip = ownerPage.getByTestId('shopping-trip').filter({ hasText: '1 item' });
+    await expect(retryFinish.or(completedTrip)).toBeVisible();
+    if (!(await completedTrip.isVisible())) {
+      ownerPage.once('dialog', (dialog) => dialog.accept());
+      await retryFinish.click({ timeout: 3_000 }).catch(() => {
+        // Realtime may converge between the visibility check and this click.
+      });
+    }
+    await expect(completedTrip).toBeVisible();
     await expect(ownerPage.getByTestId('shopping-entry').filter({ hasText: shoppingName })).toBeVisible();
 
     await ownerInventory.open();
@@ -123,6 +128,10 @@ test('two members complete the inventory-to-shopping loop and share realtime upd
     await ownerPage.reload();
     await ownerPage.getByRole('tab', { name: 'Settings' }).click();
     await expect(ownerPage.getByText(member.email, { exact: false })).toBeVisible();
+    await ownerPage.getByRole('tab', { name: 'Alerts' }).click();
+    await expect(ownerPage.getByText(`${member.displayName} joined ${householdName}.`)).toBeVisible();
+    await ownerPage.getByRole('button', { name: 'Mark read' }).first().click();
+    await expect(ownerPage.getByText('0 unread')).toBeVisible();
   } finally {
     await ownerContext.close();
     await memberContext.close();

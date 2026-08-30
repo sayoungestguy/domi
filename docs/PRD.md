@@ -132,8 +132,10 @@ for at least 90 days.
 
 Clients receive household changes without manual refresh while connected.
 Temporary reconnects trigger a refetch so the visible list converges on server
-state. Initial push notifications are invitations, a new shopping entry, and a
-completed shopping trip. Users can disable each notification category.
+state. The private-hosted MVP provides a persistent in-app inbox for new members,
+new shopping entries, and completed shopping trips. Users can disable each
+notification category. Native push is deferred because it requires a third-party
+delivery service and a separate privacy decision.
 
 ### 5.8 Search
 
@@ -237,6 +239,6 @@ environment.
 
 - Whether one account may belong to multiple households at first release.
 - Invitation expiry duration and whether owners may limit uses.
-- Whether push notifications ship at beta or public launch.
+- Whether a later release should add consent-based native push notifications.
 - Required retention period for activity and soft-deleted data.
 - Launch regions, supported languages, and the corresponding privacy terms.

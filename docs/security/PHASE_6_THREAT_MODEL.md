@@ -2,8 +2,8 @@
 
 ## Assets and boundary
 
-Protected assets are credentials, household data, database backups, Rails
-secrets, and stored authentication mail. The trust boundary is the local host,
+Protected assets are credentials, household data, notification content and
+preferences, database backups, Rails secrets, and stored authentication mail. The trust boundary is the local host,
 its Docker network, and—only when explicitly enabled—the trusted private LAN.
 
 ## Principal threats and controls
@@ -18,6 +18,7 @@ its Docker network, and—only when explicitly enabled—the trusted private LAN
 | Malicious backup | Restore only owner-generated archives; PostgreSQL archives may contain executable definitions. |
 | Untrusted LAN traffic | LAN binding is temporary/explicit; use trusted private networks and host firewall; public use requires TLS and a new threat review. |
 | Mail/token disclosure | Stored mail remains in a private Docker volume and is accessed only through the operator command. |
+| Notification disclosure | Inbox queries are membership- and recipient-scoped; no device token or payload is sent to a third party. |
 | Vulnerable/stale host | Operator owns OS/Docker patching, dependency CI reports, and controlled image rebuilds. |
 
 ## Residual risk

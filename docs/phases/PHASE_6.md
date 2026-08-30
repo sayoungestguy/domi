@@ -1,6 +1,6 @@
 # Phase 6 — Notifications and MVP hardening
 
-**Status:** In progress — local-host operations slice implemented
+**Status:** In progress — local-host operations and private notifications implemented
 **Started:** 2026-08-30
 **Owner:** Repository owner
 
@@ -51,15 +51,30 @@ Verification evidence on 2026-08-30:
   health check; and
 - all disposable containers, networks, and volumes were removed after the drill.
 
+## Slice 6B — Private in-app notifications
+
+Decision: retain notification data on the local host and do not integrate a
+third-party push provider for the MVP.
+
+Included:
+
+- persistent per-member inbox for member joins, shopping entries, and completed trips;
+- actor exclusion and duplicate-safe delivery;
+- read-one and read-all workflows;
+- per-household, per-member category preferences; and
+- mobile Alerts surface refreshed by the existing household realtime signal.
+
+Acceptance criteria:
+
+- [x] No device token or notification payload is sent to an external provider.
+- [x] Only active household members can read their own notifications.
+- [x] Retrying an idempotent shopping operation cannot duplicate a notification.
+- [x] Actors do not receive notifications for their own actions.
+- [x] Members can disable each supported category independently.
+- [x] Read state persists and can be changed individually or in bulk.
+- [x] API, mobile unit, contract, and end-to-end coverage protect the workflow.
+
 ## Remaining Phase 6 slices
-
-### 6B — Optional notifications
-
-Decide whether any third-party push provider is acceptable. If accepted, add
-device registration, invitation/shopping/trip notifications, category
-preferences, token revocation, redacted payloads, and delivery observability.
-If outbound third-party delivery is rejected, document notifications as an MVP
-scope change and retain in-app realtime updates only.
 
 ### 6C — Privacy lifecycle
 

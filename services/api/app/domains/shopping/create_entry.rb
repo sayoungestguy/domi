@@ -29,6 +29,9 @@ module Shopping
           subject: record,
           metadata: { itemName: record.name, linkedInventoryItemId: inventory_item&.id }
         )
+        Notifications::FanOut.call(
+          household:, actor:, kind: "shopping_entry_added", subject: record
+        )
         record
       end
       Result.new(entry:, created: true)

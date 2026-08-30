@@ -210,8 +210,8 @@ Domi is ready for sustained beta use by real households.
 
 - Private local-machine hosting with loopback-by-default or explicit LAN binding.
 - Operator-controlled startup, health verification, logs, backup, restore, and rollback.
-- Mobile device registration and notification provider integration.
-- Invitation, shopping-entry, and completed-trip notifications.
+- Private, persistent in-app notifications without device registration or an external provider.
+- Member-join, shopping-entry, and completed-trip notifications.
 - Per-category notification preferences.
 - Account and household deletion workflows.
 - Data-export groundwork.
