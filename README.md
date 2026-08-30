@@ -86,8 +86,7 @@ The suite starts an Expo web server and a Dockerized Rails API backed by the
 dedicated `domi_e2e` PostgreSQL database. It does not modify development data.
 
 GitHub Actions runs the backend, mobile, production-image, and Playwright gates
-for pull requests and `main`. A successful `main` run publishes the tested API
-image to GitHub Container Registry; deployment to UAT remains an explicit next
-step once its host and secrets are configured.
+for pull requests and `main`. The production API is built and operated privately
+on the owner's local machine; CI does not deploy it or publish a runtime image.
 
 Do not add production services merely because a reserved directory exists.

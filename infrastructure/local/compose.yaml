@@ -1,0 +1,65 @@
+name: ${DOMI_LOCAL_PROJECT:-domi-local}
+
+services:
+  postgres:
+    image: postgres:18.3
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: api_production
+      POSTGRES_USER: api
+      POSTGRES_PASSWORD: ${DOMI_DATABASE_PASSWORD:?Set DOMI_DATABASE_PASSWORD in .env.local}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U api -d api_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  mail_init:
+    image: postgres:18.3
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c", "install -d -o 1000 -g 1000 -m 700 /mail"]
+    restart: "no"
+    volumes:
+      - local_mail:/mail
+
+  api:
+    build:
+      context: ../../services/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      ACTION_CABLE_ALLOWED_ORIGINS: ${DOMI_ALLOWED_ORIGINS:-}
+      API_DATABASE_PASSWORD: ${DOMI_DATABASE_PASSWORD:?Set DOMI_DATABASE_PASSWORD in .env.local}
+      APP_HOST: ${DOMI_APP_HOST:-localhost}
+      APP_PORT: ${DOMI_API_PORT:-3000}
+      APP_VERSION: ${DOMI_APP_VERSION:-local}
+      CORS_ALLOWED_ORIGINS: ${DOMI_ALLOWED_ORIGINS:-}
+      DATABASE_HOST: postgres
+      LOCAL_MAIL_PATH: /rails/storage/mail
+      RAILS_ENV: production
+      RAILS_FORCE_SSL: "false"
+      SECRET_KEY_BASE: ${DOMI_SECRET_KEY_BASE:?Set DOMI_SECRET_KEY_BASE in .env.local}
+      SOLID_QUEUE_IN_PUMA: "true"
+    ports:
+      - "${DOMI_BIND_ADDRESS:-127.0.0.1}:${DOMI_API_PORT:-3000}:3000"
+    depends_on:
+      mail_init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:3000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    volumes:
+      - local_mail:/rails/storage/mail
+
+volumes:
+  postgres_data:
+  local_mail:

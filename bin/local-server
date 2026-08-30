@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+compose_file="$project_root/infrastructure/local/compose.yaml"
+env_file="${DOMI_LOCAL_ENV_FILE:-$project_root/infrastructure/local/.env.local}"
+backup_dir="${DOMI_LOCAL_BACKUP_DIR:-$project_root/backups/local}"
+
+usage() {
+  echo "Usage: bin/local-server <init|config|up|down|status|logs|smoke|mail|backup|restore>"
+}
+
+require_env() {
+  if [[ ! -f "$env_file" ]]; then
+    echo "Missing $env_file. Run bin/local-server init first." >&2
+    exit 1
+  fi
+
+  bind_address="$(sed -n 's/^DOMI_BIND_ADDRESS=//p' "$env_file" | tail -1)"
+  case "$bind_address" in
+    127.0.0.1|10.*|192.168.*)
+      ;;
+    172.*)
+      second_octet="${bind_address#172.}"
+      second_octet="${second_octet%%.*}"
+      if [[ ! "$second_octet" =~ ^[0-9]+$ ]] || (( 10#$second_octet < 16 || 10#$second_octet > 31 )); then
+        echo "DOMI_BIND_ADDRESS must be loopback or an RFC1918 private address." >&2
+        exit 1
+      fi
+      ;;
+    *)
+      echo "DOMI_BIND_ADDRESS must be loopback or an RFC1918 private address." >&2
+      exit 1
+      ;;
+  esac
+}
+
+compose() {
+  docker compose --env-file "$env_file" --file "$compose_file" "$@"
+}
+
+initialize_environment() {
+  if [[ -e "$env_file" ]]; then
+    echo "$env_file already exists; refusing to overwrite it." >&2
+    exit 1
+  fi
+
+  mkdir -p "$(dirname "$env_file")"
+  umask 077
+  database_password="$(openssl rand -hex 32)"
+  secret_key_base="$(openssl rand -hex 64)"
+  {
+    echo "DOMI_LOCAL_PROJECT=${DOMI_LOCAL_PROJECT:-domi-local}"
+    echo "DOMI_BIND_ADDRESS=${DOMI_BIND_ADDRESS:-127.0.0.1}"
+    echo "DOMI_API_PORT=${DOMI_API_PORT:-3000}"
+    echo "DOMI_APP_HOST=${DOMI_APP_HOST:-localhost}"
+    echo "DOMI_APP_VERSION=${DOMI_APP_VERSION:-local}"
+    echo "DOMI_ALLOWED_ORIGINS=${DOMI_ALLOWED_ORIGINS:-}"
+    echo "DOMI_DATABASE_PASSWORD=$database_password"
+    echo "DOMI_SECRET_KEY_BASE=$secret_key_base"
+  } > "$env_file"
+  chmod 600 "$env_file"
+  echo "Created $env_file with loopback-only binding and generated secrets."
+}
+
+create_backup() {
+  requested_path="${1:-}"
+  mkdir -p "$backup_dir"
+  if [[ -n "$requested_path" ]]; then
+    backup_path="$requested_path"
+  else
+    backup_path="$backup_dir/domi-$(date -u +%Y%m%dT%H%M%SZ).dump"
+  fi
+
+  mkdir -p "$(dirname "$backup_path")"
+  umask 077
+  compose exec -T postgres pg_dump \
+    --username api \
+    --format custom \
+    --create \
+    --clean \
+    --if-exists \
+    api_production > "$backup_path"
+  test -s "$backup_path"
+  compose exec -T postgres pg_restore --list < "$backup_path" > /dev/null
+  shasum -a 256 "$backup_path" > "$backup_path.sha256"
+  chmod 600 "$backup_path" "$backup_path.sha256"
+  echo "$backup_path"
+}
+
+restore_backup() {
+  archive="${1:-}"
+  confirmation="${2:-}"
+  if [[ -z "$archive" || "$confirmation" != "--confirm-restore" ]]; then
+    echo "Usage: bin/local-server restore <backup.dump> --confirm-restore" >&2
+    exit 1
+  fi
+  if [[ ! -s "$archive" ]]; then
+    echo "Backup does not exist or is empty: $archive" >&2
+    exit 1
+  fi
+
+  compose exec -T postgres pg_restore --list < "$archive" > /dev/null
+  safety_backup="$(create_backup)"
+  echo "Safety backup created at $safety_backup"
+  compose stop api
+  compose exec -T postgres psql --username api --dbname postgres \
+    --set ON_ERROR_STOP=1 \
+    --command "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'api_production' AND pid <> pg_backend_pid();"
+  compose exec -T postgres dropdb --username api --if-exists api_production
+  compose exec -T postgres createdb --username api --owner api --template template0 api_production
+  compose exec -T postgres pg_restore \
+    --username api \
+    --dbname api_production \
+    --exit-on-error \
+    --no-owner \
+    --no-privileges < "$archive"
+  compose up --detach --wait api
+  "$0" smoke
+  echo "Restore completed from $archive"
+}
+
+command="${1:-}"
+case "$command" in
+  init)
+    initialize_environment
+    ;;
+  config)
+    require_env
+    compose config --quiet
+    echo "Local server configuration is valid."
+    ;;
+  up)
+    require_env
+    compose up --detach --build --wait
+    "$0" smoke
+    ;;
+  down)
+    require_env
+    compose down
+    ;;
+  status)
+    require_env
+    compose ps
+    ;;
+  logs)
+    require_env
+    compose logs --follow --tail 200 api postgres
+    ;;
+  smoke)
+    require_env
+    bind_address="$(sed -n 's/^DOMI_BIND_ADDRESS=//p' "$env_file" | tail -1)"
+    api_port="$(sed -n 's/^DOMI_API_PORT=//p' "$env_file" | tail -1)"
+    api_port="${api_port:-3000}"
+    curl --fail --silent --show-error \
+      --connect-timeout 3 \
+      --max-time 10 \
+      "http://$bind_address:$api_port/api/v1/health"
+    echo
+    ;;
+  mail)
+    require_env
+    compose exec -T api sh -c 'find /rails/storage/mail -maxdepth 4 -type f -print | sort'
+    ;;
+  backup)
+    require_env
+    create_backup "${2:-}"
+    ;;
+  restore)
+    require_env
+    restore_backup "${2:-}" "${3:-}"
+    ;;
+  *)
+    usage >&2
+    exit 1
+    ;;
+esac

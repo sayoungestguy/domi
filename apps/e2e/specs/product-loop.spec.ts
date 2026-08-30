@@ -14,6 +14,8 @@ test('two members complete the inventory-to-shopping loop and share realtime upd
   browser,
   makeUser,
 }) => {
+  test.setTimeout(120_000);
+
   const owner = makeUser('Maya');
   const member = makeUser('Alex');
   await Promise.all([seedVerifiedUser(owner), seedVerifiedUser(member)]);

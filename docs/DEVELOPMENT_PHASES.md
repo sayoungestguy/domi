@@ -4,7 +4,7 @@
 **Date:** 2026-08-19  
 **Applies to:** MVP development and post-MVP sequencing
 
-**Progress:** Phases 0–2 complete; Phases 3–4 are implemented with manual acceptance pending.
+**Progress:** Phases 0–1 complete; Phases 2–5 are implemented with manual acceptance pending; Phase 6 local-host hardening is in progress.
 
 ## 1. Delivery decision
 
@@ -208,6 +208,8 @@ Domi is ready for sustained beta use by real households.
 
 ### Scope
 
+- Private local-machine hosting with loopback-by-default or explicit LAN binding.
+- Operator-controlled startup, health verification, logs, backup, restore, and rollback.
 - Mobile device registration and notification provider integration.
 - Invitation, shopping-entry, and completed-trip notifications.
 - Per-category notification preferences.
@@ -215,7 +217,7 @@ Domi is ready for sustained beta use by real households.
 - Data-export groundwork.
 - Accessibility and security audits.
 - Performance profiling and optimization.
-- Backup, restoration, deployment, and rollback verification.
+- Backup, restoration, local release, and rollback verification.
 - Privacy documentation and operational runbooks.
 - Controlled product analytics and success-measure dashboards.
 
@@ -339,8 +341,8 @@ they are not silently deferred.
 
 ## 14. Immediate next step
 
-Complete the Phase 3–5 physical-device acceptance walkthroughs with two household
-members, including normal realtime propagation, a missed-event gap, reconnection,
-and shopping completion retry. Then implement the browser coverage described in
-`testing/PLAYWRIGHT_E2E_PLAN.md`. Record unresolved acceptance failures as
-explicit blockers before Phase 6 notifications and MVP hardening.
+Complete Phase 6A private local-host hardening, including a real backup/restore
+drill. Then complete the Phase 2–5 physical-device acceptance walkthroughs with
+two household members against that host. Notification delivery, deletion/export,
+and audit/performance work follow as separate Phase 6 slices. Browser coverage is
+already implemented in `testing/PLAYWRIGHT_E2E_PLAN.md`.

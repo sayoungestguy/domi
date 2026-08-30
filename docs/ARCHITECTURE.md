@@ -190,10 +190,16 @@ queue can synchronize directly with the Rails API.
 
 ## 10. Deployment and operations
 
-MVP environments are development, staging, and production. The API runs as a
-stateless web process plus a worker process when jobs are enabled. PostgreSQL is
-managed in staging/production with automated backups and point-in-time recovery.
-Redis is managed and non-authoritative.
+The MVP server is hosted on the owner's local machine, not on a public cloud or
+internet-facing host. Environments are development, automated test, and a
+private production-mode local host. The host binds to loopback by default; an
+operator may bind to one explicit private LAN address for physical devices. No
+router port forwarding, public DNS, or inbound internet access is required.
+
+Rails, Solid Queue, Solid Cable, and PostgreSQL run through a dedicated Compose
+profile. PostgreSQL is not published on a host port. The operator owns encrypted
+off-machine backup copies, restore drills, host patching, power availability,
+and local firewall rules. Redis remains unnecessary and non-authoritative.
 
 Each deploy runs migrations as a controlled release step. Schema changes follow
 expand/migrate/contract so old and new application versions can overlap safely.
@@ -208,16 +214,17 @@ database pool saturation, job age/failures, outbox lag, WebSocket connections,
 and notification delivery failures. Error tracking includes release and
 environment but filters private household content.
 
-Initial service objectives:
+Initial local-host objectives:
 
-- 99.9% monthly API availability after public launch;
+- availability while the designated home server is powered on and connected;
 - p95 normal API latency below 500 ms;
 - p95 connected event propagation below 1 second;
 - recovery point objective no worse than 15 minutes;
 - recovery time objective within 4 hours.
 
-These targets must be validated against provider capabilities and budget before
-being contractual.
+These are operational goals, not public service commitments. Local power,
+network, and hardware failures are accepted constraints and must remain visible
+to clients as offline state.
 
 ## 12. Evolution triggers
 
@@ -233,4 +240,3 @@ being contractual.
 
 Snowflake, Elasticsearch, Phoenix, Firestore, and independent analytics services
 are not part of the MVP architecture.
-

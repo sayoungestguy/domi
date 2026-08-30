@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "yaml"
+
+ROOT = File.expand_path("..", __dir__)
+COMPOSE_PATH = File.join(ROOT, "infrastructure", "local", "compose.yaml")
+SCRIPT_PATH = File.join(ROOT, "bin", "local-server")
+
+def assert(condition, message)
+  abort(message) unless condition
+end
+
+compose_text = File.read(COMPOSE_PATH)
+compose = YAML.safe_load(compose_text, aliases: true)
+services = compose.fetch("services")
+postgres = services.fetch("postgres")
+mail_init = services.fetch("mail_init")
+api = services.fetch("api")
+
+assert(!postgres.key?("ports"), "Local PostgreSQL must not publish a host port")
+assert(api.fetch("ports").one?, "The local API must publish exactly one port")
+assert(api.fetch("ports").first.start_with?("${DOMI_BIND_ADDRESS:-127.0.0.1}"),
+  "The API must bind to loopback unless the operator explicitly chooses a LAN address")
+assert(api.fetch("environment")["RAILS_ENV"] == "production", "The local host must use Rails production mode")
+assert(api.fetch("environment")["RAILS_FORCE_SSL"] == "false", "Private local HTTP must be explicit")
+assert(api.fetch("depends_on").fetch("postgres").fetch("condition") == "service_healthy",
+  "The API must wait for a healthy database")
+assert(api.fetch("depends_on").fetch("mail_init").fetch("condition") == "service_completed_successfully",
+  "The API must wait for writable local mail storage")
+assert(mail_init.fetch("user") == "0:0" && mail_init.fetch("restart") == "no",
+  "Mail initialization must be a bounded one-shot ownership task")
+assert(api.key?("healthcheck") && postgres.key?("healthcheck"), "Both local services require health checks")
+assert(compose_text.include?("DOMI_DATABASE_PASSWORD:?"), "Database password must be required")
+assert(compose_text.include?("DOMI_SECRET_KEY_BASE:?"), "Rails secret key must be required")
+
+script = File.read(SCRIPT_PATH)
+%w[init config up down status logs smoke mail backup restore].each do |command|
+  assert(script.match?(/^  #{command}\)/), "local-server is missing the #{command} command")
+end
+assert(script.include?("--confirm-restore"), "Restore must require explicit confirmation")
+assert(script.include?("safety_backup=\"$(create_backup)\""), "Restore must create a safety backup")
+assert(script.include?("RFC1918 private address"), "Operator commands must reject public bind addresses")
+assert(script.include?("--max-time 10"), "Health checks must have a hard timeout")
+
+puts "Local-host configuration is valid."

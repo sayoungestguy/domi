@@ -3,7 +3,7 @@
 **Product:** Domi  
 **Tagline:** Your home, organised.  
 **Version:** 1.1  
-**Status:** MVP specification  
+**Status:** Private self-hosted MVP specification
 **Platforms:** iOS and Android; web administration follows the MVP
 
 ## 1. Product summary
@@ -219,6 +219,11 @@ scope.
 4. **Post-MVP:** basic web management, richer household roles, offline mutation
    queue, then new household domains based on evidence.
 
+The MVP API and database run on the product owner's local machine. They are not
+published through public DNS or router port forwarding. Supported clients use
+loopback during host-only use or an explicitly selected private LAN address.
+Public SaaS hosting is outside the current product plan.
+
 ## 11. Definition of done
 
 The MVP is done when two real people on supported mobile platforms can create
@@ -235,4 +240,3 @@ environment.
 - Whether push notifications ship at beta or public launch.
 - Required retention period for activity and soft-deleted data.
 - Launch regions, supported languages, and the corresponding privacy terms.
-
