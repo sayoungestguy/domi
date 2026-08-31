@@ -20,6 +20,7 @@ import { BrandHeader, Button, Card, Field, Message, Screen, sharedStyles } from 
 import { confirmAction } from '../../components/confirmAction';
 import { InventoryScreen } from '../inventory/InventoryScreen';
 import { NotificationsScreen } from '../notifications/NotificationsScreen';
+import { PrivacyControls } from '../privacy/PrivacyControls';
 import { ShoppingScreen } from '../shopping/ShoppingScreen';
 import { useHouseholdRealtime } from '../../realtime/useHouseholdRealtime';
 import { colors, radii, spacing } from '../../theme/tokens';
@@ -29,6 +30,7 @@ import { useFormValidation } from '../../validation/useFormValidation';
 type Props = {
   user: User;
   initialJoinToken?: string;
+  onAccountDeleted: () => Promise<void>;
   onJoinIntentConsumed: () => void;
   onSignOut: () => Promise<void>;
 };
@@ -36,6 +38,7 @@ type Props = {
 export function HouseholdsScreen({
   user,
   initialJoinToken,
+  onAccountDeleted,
   onJoinIntentConsumed,
   onSignOut,
 }: Props) {
@@ -405,32 +408,47 @@ export function HouseholdsScreen({
               variant="danger"
             />
           )}
+
+          <PrivacyControls
+            household={selected}
+            onAccountDeleted={onAccountDeleted}
+            onHouseholdDeleted={async () => {
+              setNotice('Household deleted.');
+              await loadHouseholds();
+            }}
+          />
         </>
       ) : !selected ? (
-        <Card>
-          <Text style={sharedStyles.sectionTitle}>Create your first home</Text>
-          <Field
-            error={validation.error('householdName', householdNameError)}
-            label="Household name"
-            onChangeText={validation.bind('householdName', setHouseholdName)}
-            placeholder="Tan Household"
-            value={householdName}
+        <>
+          <Card>
+            <Text style={sharedStyles.sectionTitle}>Create your first home</Text>
+            <Field
+              error={validation.error('householdName', householdNameError)}
+              label="Household name"
+              onChangeText={validation.bind('householdName', setHouseholdName)}
+              placeholder="Tan Household"
+              value={householdName}
+            />
+            <Button
+              disabled={Boolean(householdNameError)}
+              label="Create home"
+              loading={busy === 'create'}
+              onPress={() =>
+                void runAction('create', async () => {
+                  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Etc/UTC';
+                  const response = await createHousehold(householdName.trim(), timezone);
+                  await loadHouseholds();
+                  setSelectedId(response.household.id);
+                  setNotice(`${response.household.name} is ready.`);
+                })
+              }
+            />
+          </Card>
+          <PrivacyControls
+            onAccountDeleted={onAccountDeleted}
+            onHouseholdDeleted={async () => loadHouseholds().then(() => undefined)}
           />
-          <Button
-            disabled={Boolean(householdNameError)}
-            label="Create home"
-            loading={busy === 'create'}
-            onPress={() =>
-              void runAction('create', async () => {
-                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Etc/UTC';
-                const response = await createHousehold(householdName.trim(), timezone);
-                await loadHouseholds();
-                setSelectedId(response.household.id);
-                setNotice(`${response.household.name} is ready.`);
-              })
-            }
-          />
-        </Card>
+        </>
       ) : null}
 
       <Card>

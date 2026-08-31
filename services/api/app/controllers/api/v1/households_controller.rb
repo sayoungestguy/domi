@@ -37,6 +37,20 @@ module Api
           household: HouseholdSerializer.render(household, membership: household.owner_membership)
         }
       end
+
+      def destroy
+        household = find_household!
+        unless params.require(:confirmation) == household.name
+          raise DomainError.new(
+            code: "privacy.confirmation_failed",
+            message: "Enter the household name exactly to confirm deletion.",
+            status: :unprocessable_entity
+          )
+        end
+
+        Privacy::DeleteHousehold.call(household:, actor: current_user)
+        head :no_content
+      end
     end
   end
 end

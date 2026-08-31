@@ -1,6 +1,6 @@
 # Phase 6 — Notifications and MVP hardening
 
-**Status:** In progress — local-host operations and private notifications implemented
+**Status:** In progress — slices 6A through 6C implemented
 **Started:** 2026-08-30
 **Owner:** Repository owner
 
@@ -74,12 +74,29 @@ Acceptance criteria:
 - [x] Read state persists and can be changed individually or in bulk.
 - [x] API, mobile unit, contract, and end-to-end coverage protect the workflow.
 
+## Slice 6C — Privacy lifecycle
+
+Included:
+
+- portable account export and owner-only household export with secrets excluded;
+- credential-confirmed account erasure with owned-household safeguards;
+- exact-name, owner-only transactional household deletion;
+- non-identifying tombstones for shared historical referential integrity;
+- 90-day activity/notification and 30-day operational retention; and
+- immutable, redacted privacy audit events and a daily cleanup job.
+
+Acceptance criteria:
+
+- [x] Exports never contain password, session, token, or invitation digests.
+- [x] Non-owners cannot export or delete complete household data.
+- [x] Account deletion requires password plus an exact phrase and revokes all sessions.
+- [x] Owners must transfer or delete owned households before account deletion.
+- [x] Household deletion removes every household-scoped record transactionally.
+- [x] Historical shared records expose only a neutral deleted-member identity.
+- [x] Retention cleanup preserves recent records and audits aggregate deletion counts.
+- [x] API, mobile, contract, and end-to-end tests protect destructive workflows.
+
 ## Remaining Phase 6 slices
-
-### 6C — Privacy lifecycle
-
-Implement account deletion, owner-controlled household deletion, data export,
-retention rules, and auditable asynchronous cleanup.
 
 ### 6D — Beta readiness
 

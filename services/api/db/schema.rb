@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_30_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_31_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -188,6 +188,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_000100) do
     t.check_constraint "sequence > 0", name: "outbox_event_sequence_positive"
   end
 
+  create_table "privacy_audit_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "action", limit: 100, null: false
+    t.uuid "actor_id"
+    t.datetime "created_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "request_id", limit: 255
+    t.uuid "subject_id", null: false
+    t.string "subject_type", limit: 100, null: false
+    t.index ["action", "created_at"], name: "index_privacy_audit_events_on_action_and_created_at"
+    t.index ["subject_type", "subject_id"], name: "index_privacy_audit_events_on_subject_type_and_subject_id"
+  end
+
   create_table "shopping_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "added_by_id", null: false
     t.datetime "checked_at"
@@ -260,6 +272,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_000100) do
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "deleted_at"
     t.string "display_name", null: false
     t.citext "email", null: false
     t.datetime "email_verification_sent_at"
@@ -269,6 +282,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_000100) do
     t.datetime "password_reset_sent_at"
     t.string "password_reset_token_digest"
     t.datetime "updated_at", null: false
+    t.index ["deleted_at"], name: "index_users_on_deleted_at"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["email_verification_token_digest"], name: "index_users_on_email_verification_token_digest", unique: true, where: "(email_verification_token_digest IS NOT NULL)"
     t.index ["password_reset_token_digest"], name: "index_users_on_password_reset_token_digest", unique: true, where: "(password_reset_token_digest IS NOT NULL)"

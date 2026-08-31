@@ -24,6 +24,10 @@ class User < ApplicationRecord
   validates :display_name, presence: true, length: { maximum: 80 }
   validates :password, length: { minimum: 12, maximum: 72 }, if: -> { password.present? }
 
+  def deleted?
+    deleted_at.present?
+  end
+
   def email_verified?
     email_verified_at.present?
   end

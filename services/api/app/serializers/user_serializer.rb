@@ -4,8 +4,8 @@ module UserSerializer
   def render(user)
     {
       id: user.id,
-      email: user.email,
-      displayName: user.display_name,
+      email: user.deleted? ? "deleted-member@example.invalid" : user.email,
+      displayName: user.deleted? ? "Deleted member" : user.display_name,
       emailVerified: user.email_verified?,
       createdAt: user.created_at.iso8601
     }

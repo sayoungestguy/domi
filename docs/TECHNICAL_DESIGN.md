@@ -115,7 +115,8 @@ users, sessions
 households, memberships, invitations, household_preferences
 categories, inventory_items
 shopping_lists, shopping_entries, shopping_trips, purchased_items
-activities, outbox_events, device_tokens, notification_preferences
+activities, outbox_events, notifications, notification_preferences,
+privacy_audit_events
 idempotency_keys
 ```
 
@@ -255,4 +256,3 @@ decision, alternatives, consequences, and review trigger. The initial ADR record
 the modular-monolith choice. Each domain has a named code owner before multiple
 teams contribute. Reserved services are not activated without operational
 ownership, runbooks, dashboards, and on-call expectations.
-

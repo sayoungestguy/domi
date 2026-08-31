@@ -183,7 +183,7 @@ household's identifier must never reveal whether its resources exist.
 | Startup | last-known home screen usable within 3 seconds on a typical supported device |
 | Reliability | transactional completion; idempotent retry for mutation commands |
 | Security | TLS, secure password hashing, rate limiting, scoped authorization, no secrets in clients/logs |
-| Privacy | account/household deletion, data export planned before public launch, no advertising use |
+| Privacy | account/household deletion, portable exports, defined retention, no advertising use |
 | Compatibility | current and previous major iOS/Android releases at launch, subject to framework support |
 
 ## 8. Success measures
@@ -240,5 +240,5 @@ environment.
 - Whether one account may belong to multiple households at first release.
 - Invitation expiry duration and whether owners may limit uses.
 - Whether a later release should add consent-based native push notifications.
-- Required retention period for activity and soft-deleted data.
+- Backup rotation duration and the post-restore deletion reconciliation process.
 - Launch regions, supported languages, and the corresponding privacy terms.

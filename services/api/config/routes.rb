@@ -12,9 +12,12 @@ Rails.application.routes.draw do
       post "auth/password-reset", to: "password_resets#create"
       patch "auth/password-reset", to: "password_resets#update"
 
-      resource :me, only: %i[show update], controller: "me"
+      resource :me, only: %i[show update destroy], controller: "me" do
+        get :export, to: "account_exports#show"
+      end
 
-      resources :households, only: %i[index show create update] do
+      resources :households, only: %i[index show create update destroy] do
+        resource :export, only: :show, controller: "household_exports"
         resources :memberships, only: %i[index destroy]
         delete "membership", to: "memberships#leave"
         post "ownership", to: "memberships#transfer"

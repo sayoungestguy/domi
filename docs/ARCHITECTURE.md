@@ -189,7 +189,8 @@ queue can synchronize directly with the Rails API.
 - Rate limits cover authentication, invitation, search, and mutation abuse.
 - Logs exclude passwords, tokens, invitation codes, and free-form private text.
 - File uploads, when introduced, use private object storage and signed URLs.
-- Account/household deletion is asynchronous, auditable, and documented.
+- Account erasure and household deletion are confirmation-gated, transactional,
+  auditable, and documented. Scheduled retention cleanup runs asynchronously.
 
 ## 10. Deployment and operations
 

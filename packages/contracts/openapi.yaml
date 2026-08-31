@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Domi API
-  version: 1.6.0
+  version: 1.7.0
   description: Versioned contract shared by Domi clients and the Rails API.
 servers:
   - url: http://localhost:3000
@@ -185,6 +185,31 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/User" }
         "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      operationId: deleteCurrentAccount
+      tags: [Account]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [currentPassword, confirmation]
+              properties:
+                currentPassword: { type: string, format: password }
+                confirmation: { type: string, const: DELETE MY ACCOUNT }
+      responses:
+        "204": { description: Account credentials and identifying fields erased. }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/me/export:
+    get:
+      operationId: exportCurrentAccount
+      tags: [Account]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/PrivacyExport" }
   /api/v1/households:
     get:
       operationId: listHouseholds
@@ -230,6 +255,35 @@ paths:
       responses:
         "200": { $ref: "#/components/responses/Household" }
         "403": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deleteHousehold
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [confirmation]
+              properties:
+                confirmation: { type: string, description: Exact current household name. }
+      responses:
+        "204": { description: Household and all household-scoped data deleted. }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /api/v1/households/{householdId}/export:
+    parameters:
+      - $ref: "#/components/parameters/HouseholdId"
+    get:
+      operationId: exportHousehold
+      tags: [Households]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/PrivacyExport" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
   /api/v1/households/{householdId}/memberships:
     parameters:
       - $ref: "#/components/parameters/HouseholdId"
@@ -1024,6 +1078,21 @@ components:
             required: [notificationPreference]
             properties:
               notificationPreference: { $ref: "#/components/schemas/NotificationPreference" }
+    PrivacyExport:
+      description: Portable JSON export with credentials and secrets excluded.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [export]
+            properties:
+              export:
+                type: object
+                required: [schemaVersion, exportedAt]
+                additionalProperties: true
+                properties:
+                  schemaVersion: { type: integer, const: 1 }
+                  exportedAt: { type: string, format: date-time }
   schemas:
     Health:
       type: object
