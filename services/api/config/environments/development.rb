@@ -24,7 +24,10 @@ Rails.application.configure do
   end
 
   # Change to :null_store to avoid any caching.
-  config.cache_store = :memory_store
+  # Browser E2E creates many independent users from one loopback address. A
+  # null store keeps those deterministic runs from sharing production-like
+  # per-IP rate-limit counters; ordinary development still exercises them.
+  config.cache_store = ENV["E2E_MODE"] == "1" ? :null_store : :memory_store
 
   # Write authentication emails to disk so verification and password-reset
   # deep links can be exercised locally without an external provider.

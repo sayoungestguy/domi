@@ -1,7 +1,7 @@
 # Playwright end-to-end test plan
 
-**Status:** Baseline implemented; browser-matrix and extended cases remain
-**Scope baseline:** Phases 0–5
+**Status:** Baseline and focused regressions implemented; browser-matrix and extended cases remain
+**Scope baseline:** Phases 0–6C
 
 ## Purpose and boundary
 
@@ -32,7 +32,12 @@ apps/e2e/
   specs/
     smoke-accessibility.spec.ts
     auth.spec.ts
+    form-validation.spec.ts
+    household-governance.spec.ts
+    idempotency.spec.ts
+    notification-preferences.spec.ts
     product-loop.spec.ts
+    privacy.spec.ts
     realtime-resilience.spec.ts
     authorization.spec.ts
   scripts/users.ts
@@ -48,7 +53,10 @@ The E2E environment runs the same services as UAT but uses an isolated test
 database:
 
 1. `bin/e2e-api` builds the API image, starts PostgreSQL, migrates the dedicated
-   `domi_e2e` database, and serves HTTP plus `/cable` on port 3100.
+   `domi_e2e` database, and serves HTTP plus `/cable` on port 3100. Its explicit
+   `E2E_MODE` uses a null cache so independent browser users sharing the
+   loopback address do not consume one another's per-IP rate-limit allowance;
+   normal development and production rate limiting remains enabled.
 2. Expo serves the web client on port 8082 with its API URL set to the E2E API.
 3. Accounts needed only as setup are created by an out-of-process Rails runner;
    no fixture route is added to the application.
@@ -101,6 +109,20 @@ The Chromium suite currently automates:
 - a deliberately dropped cable event followed by gap-driven authoritative
   convergence and a visibly stale offline shopping cache; and
 - outsider denial over both REST and an actual Action Cable subscription.
+
+Focused regressions additionally isolate and prove:
+
+- per-field registration errors, invalid-field accessibility state, and
+  independent recovery as values become valid;
+- generic invalid-credential handling without a browser session being created;
+- negative inventory quantity rejection and the deliberate warned-but-allowed
+  duplicate-name policy;
+- member UI and API denial for owner-only governance, export, and deletion;
+- blocking account deletion until every owned household is transferred or
+  deleted;
+- shopping-notification opt-out, opt-in, delivery, unread count, and mark-all;
+- identical shopping-create retries return one stable resource and leave one
+  list entry.
 
 Run it from the repository root with `npm run e2e`. Install browser binaries once
 with `npm run e2e:install`. Set `E2E_ALL_BROWSERS=1` to add the configured WebKit
