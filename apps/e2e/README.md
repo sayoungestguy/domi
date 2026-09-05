@@ -10,8 +10,8 @@ npm run e2e:install
 npm run e2e
 ```
 
-The default required project is Chromium. Run the configured Chromium and
-WebKit projects with:
+The default required projects are desktop Chromium plus the phone-sized
+Chromium beta-readiness scenario. Add the configured WebKit project with:
 
 ```sh
 E2E_ALL_BROWSERS=1 npm run e2e
@@ -31,7 +31,8 @@ npm --prefix apps/e2e test -- --grep "notification"
 The suite includes focused scenarios for inline form feedback, authentication
 failure privacy, household role boundaries, destructive-action safeguards,
 notification preferences, and request idempotency in addition to the full
-multi-user product loops.
+multi-user product loops. The beta-readiness scenario scans all signed-in tabs
+for WCAG A/AA violations and enforces startup/API regression budgets.
 
 Playwright covers browser behavior only. Native SecureStore, OS lifecycle,
 custom/universal links, VoiceOver/TalkBack, and physical-network behavior remain

@@ -1,6 +1,6 @@
 # Phase 6 — Notifications and MVP hardening
 
-**Status:** In progress — slices 6A through 6C implemented
+**Status:** In progress — slices 6A through 6D implemented; physical acceptance pending
 **Started:** 2026-08-30
 **Owner:** Repository owner
 
@@ -100,9 +100,24 @@ Acceptance criteria:
 
 ### 6D — Beta readiness
 
-Complete accessibility and security audits, performance profiling, error/crash
-monitoring suitable for local hosting, success-measure reporting, backup/restore
-evidence, and physical-device acceptance.
+Included:
+
+- aggregate-only local success and outbox-health reporting;
+- sanitized structured capture of unexpected server exceptions;
+- signed-in WCAG A/AA scans at desktop and phone-sized browser viewports;
+- automated three-second warmed-start and 500 ms authenticated API p95 budgets;
+- a local beta operations runbook and explicit physical-device checklist.
+
+Acceptance criteria:
+
+- [x] Operational reports exclude user and household content, notes, and secrets.
+- [x] Unexpected exception records exclude messages and request parameters.
+- [x] Desktop and phone-sized signed-in core surfaces pass automated WCAG scans.
+- [x] Startup and normal authenticated API regression budgets run in Playwright.
+- [x] Backend security, quality, mobile, and E2E gates protect the slice.
+- [ ] Complete VoiceOver, TalkBack, 200% text, and touch-target review on devices.
+- [ ] Complete two-device disconnect/reconnect and token-expiry acceptance.
+- [ ] Collect multi-week crash-free, failed-sync, activation, and retention evidence.
 
 ## Excluded
 

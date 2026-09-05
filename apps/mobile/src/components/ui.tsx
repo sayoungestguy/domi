@@ -100,7 +100,10 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.surface : colors.brand[600]} />
+        <ActivityIndicator
+          accessibilityLabel={`${label} in progress`}
+          color={variant === 'primary' ? colors.surface : colors.brand[600]}
+        />
       ) : (
         <Text
           style={[

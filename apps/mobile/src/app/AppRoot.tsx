@@ -88,7 +88,7 @@ export function AppRoot() {
   if (authState.status === 'booting') {
     return (
       <View accessibilityLiveRegion="polite" style={styles.loading}>
-        <ActivityIndicator color={colors.brand[600]} size="large" />
+        <ActivityIndicator accessibilityLabel="Opening Domi" color={colors.brand[600]} size="large" />
         <Text style={styles.loadingText}>Opening Domi…</Text>
       </View>
     );

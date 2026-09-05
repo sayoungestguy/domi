@@ -4,7 +4,7 @@
 **Date:** 2026-08-19  
 **Applies to:** MVP development and post-MVP sequencing
 
-**Progress:** Phases 0–1 complete; Phases 2–5 are implemented with manual acceptance pending; Phase 6 local-host hardening is in progress.
+**Progress:** Phases 0–1 complete; Phases 2–5 are implemented with manual acceptance pending; Phase 6 implementation is complete with physical and multi-week beta acceptance pending.
 
 ## 1. Delivery decision
 
@@ -341,8 +341,8 @@ they are not silently deferred.
 
 ## 14. Immediate next step
 
-Complete Phase 6A private local-host hardening, including a real backup/restore
-drill. Then complete the Phase 2–5 physical-device acceptance walkthroughs with
-two household members against that host. Notification delivery, deletion/export,
-and audit/performance work follow as separate Phase 6 slices. Browser coverage is
-already implemented in `testing/PLAYWRIGHT_E2E_PLAN.md`.
+Complete the Phase 2–6 physical-device acceptance walkthroughs with two
+household members against the private local host, then collect multi-week beta
+evidence. Use `operations/BETA_READINESS.md` for the checklist and local report.
+Phase 7 web management starts only after the Phase 6 evidence is accepted or its
+remaining manual items are explicitly re-scoped.

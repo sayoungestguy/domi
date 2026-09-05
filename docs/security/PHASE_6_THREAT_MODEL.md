@@ -22,6 +22,7 @@ its Docker network, and—only when explicitly enabled—the trusted private LAN
 | Accidental destructive privacy request | Password/exact-phrase account confirmation, exact-name household confirmation, owner checks, and transactional deletion. |
 | Secrets leaked through export | Explicit serializers omit password, session, token, and invitation digests; exports require current membership. |
 | Deleted data surviving in backups | Encrypted limited-retention backups, documented restore reconciliation, and operator access controls. |
+| Monitoring or beta reports leak private content | Reports are host-only aggregate counts; unexpected-error records use an allowlist and exclude messages and parameters. |
 | Vulnerable/stale host | Operator owns OS/Docker patching, dependency CI reports, and controlled image rebuilds. |
 
 ## Residual risk

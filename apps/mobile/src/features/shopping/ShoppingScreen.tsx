@@ -238,7 +238,7 @@ export function ShoppingScreen({ household, refreshSignal = 0 }: Props) {
   if (loading && !list) {
     return (
       <View accessibilityLiveRegion="polite" style={styles.loading}>
-        <ActivityIndicator color={colors.brand[600]} />
+        <ActivityIndicator accessibilityLabel="Loading shopping list" color={colors.brand[600]} />
         <Text style={sharedStyles.secondary}>Loading shopping list…</Text>
       </View>
     );

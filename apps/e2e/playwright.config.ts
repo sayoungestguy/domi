@@ -25,6 +25,11 @@ export default defineConfig({
   metadata: { apiURL, webURL },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'mobile-chromium',
+      testMatch: /beta-readiness\.spec\.ts/,
+      use: { ...devices['Pixel 5'] },
+    },
     ...(runAllBrowsers ? [{ name: 'webkit', use: { ...devices['Desktop Safari'] } }] : []),
   ],
   webServer: process.env.E2E_EXTERNAL_SERVERS === '1'

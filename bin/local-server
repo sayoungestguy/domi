@@ -7,7 +7,7 @@ env_file="${DOMI_LOCAL_ENV_FILE:-$project_root/infrastructure/local/.env.local}"
 backup_dir="${DOMI_LOCAL_BACKUP_DIR:-$project_root/backups/local}"
 
 usage() {
-  echo "Usage: bin/local-server <init|config|up|down|status|logs|smoke|mail|backup|restore>"
+  echo "Usage: bin/local-server <init|config|up|down|status|logs|smoke|report|mail|backup|restore>"
 }
 
 require_env() {
@@ -157,6 +157,11 @@ case "$command" in
       --max-time 10 \
       "http://$bind_address:$api_port/api/v1/health"
     echo
+    ;;
+  report)
+    require_env
+    compose exec -T api bin/rails runner \
+      'puts JSON.pretty_generate(Operations::BetaReadinessReport.call)'
     ;;
   mail)
     require_env

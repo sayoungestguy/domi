@@ -44,6 +44,7 @@ bin/local-server mail
 
 ```bash
 bin/local-server smoke
+bin/local-server report
 bin/local-server logs
 bin/local-server backup
 bin/local-server down
@@ -51,6 +52,10 @@ bin/local-server down
 
 `down` preserves PostgreSQL and mail volumes. Do not use `docker compose down
 --volumes` against the local profile.
+
+`report` prints the aggregate-only product and reliability measures described
+in `BETA_READINESS.md`. Unexpected application errors are written as sanitized
+structured `application.error` records in the normal local logs.
 
 ## Backups
 

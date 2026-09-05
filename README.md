@@ -84,6 +84,8 @@ npm run e2e
 
 The suite starts an Expo web server and a Dockerized Rails API backed by the
 dedicated `domi_e2e` PostgreSQL database. It does not modify development data.
+It includes desktop and phone-sized signed-in accessibility and performance
+readiness checks.
 
 GitHub Actions runs the backend, mobile, production-image, and Playwright gates
 for pull requests and `main`. The production API is built and operated privately

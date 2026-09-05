@@ -35,9 +35,11 @@ assert(compose_text.include?("DOMI_DATABASE_PASSWORD:?"), "Database password mus
 assert(compose_text.include?("DOMI_SECRET_KEY_BASE:?"), "Rails secret key must be required")
 
 script = File.read(SCRIPT_PATH)
-%w[init config up down status logs smoke mail backup restore].each do |command|
+%w[init config up down status logs smoke report mail backup restore].each do |command|
   assert(script.match?(/^  #{command}\)/), "local-server is missing the #{command} command")
 end
+assert(script.include?("Operations::BetaReadinessReport.call"),
+  "The report command must use the aggregate beta-readiness report")
 assert(script.include?("--confirm-restore"), "Restore must require explicit confirmation")
 assert(script.include?("safety_backup=\"$(create_backup)\""), "Restore must create a safety backup")
 assert(script.include?("RFC1918 private address"), "Operator commands must reject public bind addresses")

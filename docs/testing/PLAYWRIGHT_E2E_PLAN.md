@@ -32,6 +32,7 @@ apps/e2e/
   specs/
     smoke-accessibility.spec.ts
     auth.spec.ts
+    beta-readiness.spec.ts
     form-validation.spec.ts
     household-governance.spec.ts
     idempotency.spec.ts
@@ -123,6 +124,9 @@ Focused regressions additionally isolate and prove:
 - shopping-notification opt-out, opt-in, delivery, unread count, and mark-all;
 - identical shopping-create retries return one stable resource and leave one
   list entry.
+- desktop and phone-sized signed-in core surfaces have no automated WCAG A/AA
+  violations, the warmed shell appears within three seconds, and authenticated
+  household-list latency remains below the 500 ms p95 regression budget.
 
 Run it from the repository root with `npm run e2e`. Install browser binaries once
 with `npm run e2e:install`. Set `E2E_ALL_BROWSERS=1` to add the configured WebKit
@@ -147,12 +151,14 @@ project after its browser runtime is installed.
 
 ## Browser matrix
 
-- Pull requests: Chromium desktop, all critical scenarios.
+- Pull requests: Chromium desktop for all critical scenarios plus the
+  phone-sized Chromium beta-readiness scenario.
 - Main/nightly: Chromium plus WebKit for the critical product loop, auth, and
   realtime/reconnect scenarios.
 - Before beta: add Firefox if Expo web support is part of the product commitment.
-- Use one mobile-sized browser viewport as a layout regression project, while
-  recognizing that it is still a web browser, not React Native on a device.
+- The mobile-sized Chromium project runs the signed-in accessibility and
+  performance regression scenario while recognizing that it is still a web
+  browser, not React Native on a device.
 
 ## Native acceptance not covered by Playwright
 
@@ -181,8 +187,8 @@ decision; do not make browser tests pretend to certify native behavior.
 2. [x] Automate smoke/auth/household and the Phase 2–4 golden product loop.
 3. [x] Add authorization, optimistic-conflict, and idempotent-retry tests.
 4. [x] Add realtime propagation, message loss, gap recovery, and convergence.
-5. [ ] Add a mobile-sized project and expand signed-in accessibility scans.
-6. [ ] Make Chromium a required pull-request check and add WebKit nightly.
+5. [x] Add a mobile-sized project and expand signed-in accessibility scans.
+6. [ ] Keep Chromium as a required pull-request check and add WebKit nightly.
 7. [ ] Add a controlled worker/outbox outage scenario in CI/UAT.
 
 The plan is complete when every required scenario maps to an automated spec or
