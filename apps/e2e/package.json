@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "npm run typecheck && playwright test",
+    "screenshots": "npm run typecheck && E2E_CAPTURE_SCREENS=1 playwright test specs/screen-catalog.spec.ts",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit",

@@ -40,6 +40,7 @@ apps/e2e/
     product-loop.spec.ts
     privacy.spec.ts
     realtime-resilience.spec.ts
+    screen-catalog.spec.ts (dedicated evidence run)
     authorization.spec.ts
   scripts/users.ts
 ```
@@ -131,6 +132,11 @@ Focused regressions additionally isolate and prove:
 Run it from the repository root with `npm run e2e`. Install browser binaries once
 with `npm run e2e:install`. Set `E2E_ALL_BROWSERS=1` to add the configured WebKit
 project after its browser runtime is installed.
+
+Run `npm run e2e:screenshots` separately to capture the named desktop and
+phone-sized screen catalogue under `screenshots/`. It uses visible assertions
+before every full-page capture and is excluded from the ordinary regression run
+so CI does not rewrite repository evidence on every execution.
 
 ## Realtime and failure injection
 

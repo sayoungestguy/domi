@@ -3,9 +3,11 @@ import { defineConfig, devices } from '@playwright/test';
 const apiURL = process.env.E2E_API_URL ?? 'http://127.0.0.1:3100';
 const webURL = process.env.E2E_WEB_URL ?? 'http://127.0.0.1:8082';
 const runAllBrowsers = process.env.E2E_ALL_BROWSERS === '1';
+const captureScreens = process.env.E2E_CAPTURE_SCREENS === '1';
 
 export default defineConfig({
   testDir: './specs',
+  testIgnore: captureScreens ? undefined : /screen-catalog\.spec\.ts/,
   fullyParallel: false,
   workers: 1,
   timeout: 60_000,
@@ -27,7 +29,7 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     {
       name: 'mobile-chromium',
-      testMatch: /beta-readiness\.spec\.ts/,
+      testMatch: /(?:beta-readiness|screen-catalog)\.spec\.ts/,
       use: { ...devices['Pixel 5'] },
     },
     ...(runAllBrowsers ? [{ name: 'webkit', use: { ...devices['Desktop Safari'] } }] : []),

@@ -34,6 +34,15 @@ notification preferences, and request idempotency in addition to the full
 multi-user product loops. The beta-readiness scenario scans all signed-in tabs
 for WCAG A/AA violations and enforces startup/API regression budgets.
 
+Generate a named desktop and phone-sized catalogue of every application screen
+under the repository-root `screenshots/` directory with:
+
+```sh
+npm run e2e:screenshots
+```
+
+This dedicated evidence run is excluded from the normal regression suite.
+
 Playwright covers browser behavior only. Native SecureStore, OS lifecycle,
 custom/universal links, VoiceOver/TalkBack, and physical-network behavior remain
 part of the device/UAT checklist.
