@@ -3,7 +3,7 @@
 **Product:** Domi  
 **Tagline:** Your home, organised.  
 **Version:** 1.1  
-**Status:** MVP specification  
+**Status:** Private self-hosted MVP specification
 **Platforms:** iOS and Android; web administration follows the MVP
 
 ## 1. Product summary
@@ -132,8 +132,10 @@ for at least 90 days.
 
 Clients receive household changes without manual refresh while connected.
 Temporary reconnects trigger a refetch so the visible list converges on server
-state. Initial push notifications are invitations, a new shopping entry, and a
-completed shopping trip. Users can disable each notification category.
+state. The private-hosted MVP provides a persistent in-app inbox for new members,
+new shopping entries, and completed shopping trips. Users can disable each
+notification category. Native push is deferred because it requires a third-party
+delivery service and a separate privacy decision.
 
 ### 5.8 Search
 
@@ -181,7 +183,7 @@ household's identifier must never reveal whether its resources exist.
 | Startup | last-known home screen usable within 3 seconds on a typical supported device |
 | Reliability | transactional completion; idempotent retry for mutation commands |
 | Security | TLS, secure password hashing, rate limiting, scoped authorization, no secrets in clients/logs |
-| Privacy | account/household deletion, data export planned before public launch, no advertising use |
+| Privacy | account/household deletion, portable exports, defined retention, no advertising use |
 | Compatibility | current and previous major iOS/Android releases at launch, subject to framework support |
 
 ## 8. Success measures
@@ -219,6 +221,11 @@ scope.
 4. **Post-MVP:** basic web management, richer household roles, offline mutation
    queue, then new household domains based on evidence.
 
+The MVP API and database run on the product owner's local machine. They are not
+published through public DNS or router port forwarding. Supported clients use
+loopback during host-only use or an explicitly selected private LAN address.
+Public SaaS hosting is outside the current product plan.
+
 ## 11. Definition of done
 
 The MVP is done when two real people on supported mobile platforms can create
@@ -232,7 +239,6 @@ environment.
 
 - Whether one account may belong to multiple households at first release.
 - Invitation expiry duration and whether owners may limit uses.
-- Whether push notifications ship at beta or public launch.
-- Required retention period for activity and soft-deleted data.
+- Whether a later release should add consent-based native push notifications.
+- Backup rotation duration and the post-restore deletion reconciliation process.
 - Launch regions, supported languages, and the corresponding privacy terms.
-

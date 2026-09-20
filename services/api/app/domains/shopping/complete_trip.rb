@@ -45,6 +45,9 @@ module Shopping
           subject: trip,
           metadata: { itemCount: entries.length, restockedCount: restocked_count }
         )
+        Notifications::FanOut.call(
+          household:, actor:, kind: "shopping_trip_completed", subject: trip
+        )
 
         Result.new(trip:, created: true)
       end

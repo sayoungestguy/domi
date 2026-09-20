@@ -19,6 +19,8 @@ import type { Household, Invitation, Membership, User } from '../../api/types';
 import { BrandHeader, Button, Card, Field, Message, Screen, sharedStyles } from '../../components/ui';
 import { confirmAction } from '../../components/confirmAction';
 import { InventoryScreen } from '../inventory/InventoryScreen';
+import { NotificationsScreen } from '../notifications/NotificationsScreen';
+import { PrivacyControls } from '../privacy/PrivacyControls';
 import { ShoppingScreen } from '../shopping/ShoppingScreen';
 import { useHouseholdRealtime } from '../../realtime/useHouseholdRealtime';
 import { colors, radii, spacing } from '../../theme/tokens';
@@ -28,6 +30,7 @@ import { useFormValidation } from '../../validation/useFormValidation';
 type Props = {
   user: User;
   initialJoinToken?: string;
+  onAccountDeleted: () => Promise<void>;
   onJoinIntentConsumed: () => void;
   onSignOut: () => Promise<void>;
 };
@@ -35,6 +38,7 @@ type Props = {
 export function HouseholdsScreen({
   user,
   initialJoinToken,
+  onAccountDeleted,
   onJoinIntentConsumed,
   onSignOut,
 }: Props) {
@@ -48,7 +52,9 @@ export function HouseholdsScreen({
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
-  const [section, setSection] = useState<'inventory' | 'shopping' | 'settings'>('inventory');
+  const [section, setSection] = useState<
+    'inventory' | 'shopping' | 'notifications' | 'settings'
+  >('inventory');
   const processedJoinToken = useRef<string | undefined>(undefined);
   const validation = useFormValidation();
 
@@ -221,6 +227,11 @@ export function HouseholdsScreen({
             onPress={() => setSection('shopping')}
           />
           <NavigationTab
+            active={section === 'notifications'}
+            label="Alerts"
+            onPress={() => setSection('notifications')}
+          />
+          <NavigationTab
             active={section === 'settings'}
             label="Settings"
             onPress={() => setSection('settings')}
@@ -239,6 +250,13 @@ export function HouseholdsScreen({
         <ShoppingScreen
           household={selected}
           key={`shopping-${selected.id}`}
+          refreshSignal={realtime.revision}
+        />
+      ) : null}
+      {selected && section === 'notifications' ? (
+        <NotificationsScreen
+          household={selected}
+          key={`notifications-${selected.id}`}
           refreshSignal={realtime.revision}
         />
       ) : null}
@@ -390,32 +408,47 @@ export function HouseholdsScreen({
               variant="danger"
             />
           )}
+
+          <PrivacyControls
+            household={selected}
+            onAccountDeleted={onAccountDeleted}
+            onHouseholdDeleted={async () => {
+              setNotice('Household deleted.');
+              await loadHouseholds();
+            }}
+          />
         </>
       ) : !selected ? (
-        <Card>
-          <Text style={sharedStyles.sectionTitle}>Create your first home</Text>
-          <Field
-            error={validation.error('householdName', householdNameError)}
-            label="Household name"
-            onChangeText={validation.bind('householdName', setHouseholdName)}
-            placeholder="Tan Household"
-            value={householdName}
+        <>
+          <Card>
+            <Text style={sharedStyles.sectionTitle}>Create your first home</Text>
+            <Field
+              error={validation.error('householdName', householdNameError)}
+              label="Household name"
+              onChangeText={validation.bind('householdName', setHouseholdName)}
+              placeholder="Tan Household"
+              value={householdName}
+            />
+            <Button
+              disabled={Boolean(householdNameError)}
+              label="Create home"
+              loading={busy === 'create'}
+              onPress={() =>
+                void runAction('create', async () => {
+                  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Etc/UTC';
+                  const response = await createHousehold(householdName.trim(), timezone);
+                  await loadHouseholds();
+                  setSelectedId(response.household.id);
+                  setNotice(`${response.household.name} is ready.`);
+                })
+              }
+            />
+          </Card>
+          <PrivacyControls
+            onAccountDeleted={onAccountDeleted}
+            onHouseholdDeleted={async () => loadHouseholds().then(() => undefined)}
           />
-          <Button
-            disabled={Boolean(householdNameError)}
-            label="Create home"
-            loading={busy === 'create'}
-            onPress={() =>
-              void runAction('create', async () => {
-                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Etc/UTC';
-                const response = await createHousehold(householdName.trim(), timezone);
-                await loadHouseholds();
-                setSelectedId(response.household.id);
-                setNotice(`${response.household.name} is ready.`);
-              })
-            }
-          />
-        </Card>
+        </>
       ) : null}
 
       <Card>

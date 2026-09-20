@@ -17,6 +17,17 @@ module Households
 
         membership = invitation.household.household_memberships.create!(user:, role: "member")
         invitation.update!(accepted_at: Time.current, accepted_by: user)
+        Notifications::FanOut.call(
+          household: invitation.household,
+          actor: user,
+          kind: "member_joined",
+          subject: membership
+        )
+        Outbox::Record.call(
+          household: invitation.household,
+          action: "household.member_joined",
+          subject: membership
+        )
         membership
       end
     rescue ActiveRecord::RecordNotUnique

@@ -78,10 +78,17 @@ export function AppRoot() {
     }
   }
 
+  async function handleAccountDeleted() {
+    await clearSession();
+    await clearLocalHouseholdState();
+    setIntent(undefined);
+    setAuthState({ status: 'signed-out' });
+  }
+
   if (authState.status === 'booting') {
     return (
       <View accessibilityLiveRegion="polite" style={styles.loading}>
-        <ActivityIndicator color={colors.brand[600]} size="large" />
+        <ActivityIndicator accessibilityLabel="Opening Domi" color={colors.brand[600]} size="large" />
         <Text style={styles.loadingText}>Opening Domi…</Text>
       </View>
     );
@@ -95,6 +102,7 @@ export function AppRoot() {
   return (
     <HouseholdsScreen
       initialJoinToken={intent?.kind === 'join' ? intent.token : undefined}
+      onAccountDeleted={handleAccountDeleted}
       onJoinIntentConsumed={() => setIntent(undefined)}
       onSignOut={handleSignOut}
       user={authState.user}

@@ -19,9 +19,8 @@ def assert(condition, message)
 end
 
 ci = load_workflow("ci.yml")
-publish = load_workflow("publish-api.yml")
 
-assert(ci["name"] == "CI", "ci.yml must retain the CI workflow name used by delivery")
+assert(ci["name"] == "CI", "ci.yml must retain the required workflow name")
 assert(ci.fetch("on").key?("pull_request"), "CI must run for pull requests")
 assert(ci.fetch("on").fetch("push").fetch("branches").include?("main"), "CI must run on main")
 
@@ -33,22 +32,15 @@ ci_text = File.read(File.join(ROOT, ".github", "workflows", "ci.yml"))
 assert(ci_text.include?("npm run e2e"), "CI must execute the Playwright suite")
 assert(ci_text.include?("docker/build-push-action@"), "CI must build the production API image")
 assert(ci_text.scan("actions/upload-artifact@").length >= 3, "CI must publish test and quality reports")
+assert(ci_text.include?("bin/validate-local-host"), "CI must validate the local-host configuration")
 
-workflow_run = publish.fetch("on").fetch("workflow_run")
-assert(workflow_run.fetch("workflows").include?("CI"), "Delivery must depend on the CI workflow")
-assert(publish.fetch("permissions")["packages"] == "write", "Delivery needs package write permission")
+publish_path = File.join(ROOT, ".github", "workflows", "publish-api.yml")
+assert(!File.exist?(publish_path), "Internet image publication must remain disabled for local hosting")
 
-publish_text = File.read(File.join(ROOT, ".github", "workflows", "publish-api.yml"))
-assert(publish_text.include?("workflow_run.conclusion == 'success'"), "Delivery must require successful CI")
-assert(publish_text.include?("workflow_run.head_branch == 'main'"), "Delivery must only publish main")
-assert(publish_text.include?("ghcr.io"), "Delivery must publish to GitHub Container Registry")
+ci_text.scan(/uses:\s+([^\s]+)/).flatten.each do |action|
+  next if action.start_with?("./")
 
-[ci_text, publish_text].each do |workflow_text|
-  workflow_text.scan(/uses:\s+([^\s]+)/).flatten.each do |action|
-    next if action.start_with?("./")
-
-    assert(action.match?(/@v\d+\z/), "Action must use a versioned major tag: #{action}")
-  end
+  assert(action.match?(/@v\d+\z/), "Action must use a versioned major tag: #{action}")
 end
 
 puts "CI/CD workflows are valid."

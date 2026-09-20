@@ -6,7 +6,8 @@ module Api
 
       def create
         user = User.find_by(email: params.dig(:session, :email).to_s.strip.downcase)
-        invalid_credentials! unless user&.authenticate(params.dig(:session, :password).to_s)
+        invalid_credentials! unless user && !user.deleted? &&
+          user.authenticate(params.dig(:session, :password).to_s)
 
         unless user.email_verified?
           raise DomainError.new(

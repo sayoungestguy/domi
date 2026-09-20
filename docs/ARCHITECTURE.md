@@ -137,6 +137,8 @@ PATCH  /api/v1/households/:household_id/inventory-items/:id
 GET    /api/v1/households/:household_id/shopping-list
 POST   /api/v1/households/:household_id/shopping-trips
 GET    /api/v1/households/:household_id/activities
+GET    /api/v1/households/:household_id/notifications
+PATCH  /api/v1/households/:household_id/notification-preference
 ```
 
 Clients subscribe to one authorized household channel. Messages contain event
@@ -151,8 +153,9 @@ refetch; WebSocket delivery is an optimization, not the source of truth.
 - Multi-record business actions use database transactions.
 - Mutation endpoints that clients may retry accept an idempotency key.
 - An outbox row is committed in the same transaction as the domain change.
-- A background job publishes realtime updates, notifications, and analytics
-  events from the outbox, retrying safely.
+- A background job publishes realtime events from the outbox, retrying safely.
+- Private notifications are persisted for eligible recipients in the same
+  transaction as the source command; the realtime event prompts inbox refresh.
 - Consumers deduplicate by event ID.
 
 For ordinary edits, optimistic concurrency detects stale versions and returns a
@@ -186,14 +189,21 @@ queue can synchronize directly with the Rails API.
 - Rate limits cover authentication, invitation, search, and mutation abuse.
 - Logs exclude passwords, tokens, invitation codes, and free-form private text.
 - File uploads, when introduced, use private object storage and signed URLs.
-- Account/household deletion is asynchronous, auditable, and documented.
+- Account erasure and household deletion are confirmation-gated, transactional,
+  auditable, and documented. Scheduled retention cleanup runs asynchronously.
 
 ## 10. Deployment and operations
 
-MVP environments are development, staging, and production. The API runs as a
-stateless web process plus a worker process when jobs are enabled. PostgreSQL is
-managed in staging/production with automated backups and point-in-time recovery.
-Redis is managed and non-authoritative.
+The MVP server is hosted on the owner's local machine, not on a public cloud or
+internet-facing host. Environments are development, automated test, and a
+private production-mode local host. The host binds to loopback by default; an
+operator may bind to one explicit private LAN address for physical devices. No
+router port forwarding, public DNS, or inbound internet access is required.
+
+Rails, Solid Queue, Solid Cable, and PostgreSQL run through a dedicated Compose
+profile. PostgreSQL is not published on a host port. The operator owns encrypted
+off-machine backup copies, restore drills, host patching, power availability,
+and local firewall rules. Redis remains unnecessary and non-authoritative.
 
 Each deploy runs migrations as a controlled release step. Schema changes follow
 expand/migrate/contract so old and new application versions can overlap safely.
@@ -205,19 +215,20 @@ delayed until compatibility is proven.
 All requests receive a request ID; background work propagates the request and
 event IDs. Emit structured logs, request/error rates, p50/p95/p99 latency,
 database pool saturation, job age/failures, outbox lag, WebSocket connections,
-and notification delivery failures. Error tracking includes release and
+and notification creation failures. Error tracking includes release and
 environment but filters private household content.
 
-Initial service objectives:
+Initial local-host objectives:
 
-- 99.9% monthly API availability after public launch;
+- availability while the designated home server is powered on and connected;
 - p95 normal API latency below 500 ms;
 - p95 connected event propagation below 1 second;
 - recovery point objective no worse than 15 minutes;
 - recovery time objective within 4 hours.
 
-These targets must be validated against provider capabilities and budget before
-being contractual.
+These are operational goals, not public service commitments. Local power,
+network, and hardware failures are accepted constraints and must remain visible
+to clients as offline state.
 
 ## 12. Evolution triggers
 
@@ -233,4 +244,3 @@ being contractual.
 
 Snowflake, Elasticsearch, Phoenix, Firestore, and independent analytics services
 are not part of the MVP architecture.
-

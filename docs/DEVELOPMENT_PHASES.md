@@ -4,7 +4,7 @@
 **Date:** 2026-08-19  
 **Applies to:** MVP development and post-MVP sequencing
 
-**Progress:** Phases 0–2 complete; Phases 3–4 are implemented with manual acceptance pending.
+**Progress:** Phases 0–1 complete; Phases 2–5 are implemented with manual acceptance pending; Phase 6 implementation is complete with physical and multi-week beta acceptance pending.
 
 ## 1. Delivery decision
 
@@ -208,14 +208,16 @@ Domi is ready for sustained beta use by real households.
 
 ### Scope
 
-- Mobile device registration and notification provider integration.
-- Invitation, shopping-entry, and completed-trip notifications.
+- Private local-machine hosting with loopback-by-default or explicit LAN binding.
+- Operator-controlled startup, health verification, logs, backup, restore, and rollback.
+- Private, persistent in-app notifications without device registration or an external provider.
+- Member-join, shopping-entry, and completed-trip notifications.
 - Per-category notification preferences.
 - Account and household deletion workflows.
 - Data-export groundwork.
 - Accessibility and security audits.
 - Performance profiling and optimization.
-- Backup, restoration, deployment, and rollback verification.
+- Backup, restoration, local release, and rollback verification.
 - Privacy documentation and operational runbooks.
 - Controlled product analytics and success-measure dashboards.
 
@@ -339,8 +341,8 @@ they are not silently deferred.
 
 ## 14. Immediate next step
 
-Complete the Phase 3–5 physical-device acceptance walkthroughs with two household
-members, including normal realtime propagation, a missed-event gap, reconnection,
-and shopping completion retry. Then implement the browser coverage described in
-`testing/PLAYWRIGHT_E2E_PLAN.md`. Record unresolved acceptance failures as
-explicit blockers before Phase 6 notifications and MVP hardening.
+Complete the Phase 2–6 physical-device acceptance walkthroughs with two
+household members against the private local host, then collect multi-week beta
+evidence. Use `operations/BETA_READINESS.md` for the checklist and local report.
+Phase 7 web management starts only after the Phase 6 evidence is accepted or its
+remaining manual items are explicitly re-scoped.

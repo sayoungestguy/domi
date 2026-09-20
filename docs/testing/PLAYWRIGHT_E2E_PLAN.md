@@ -1,7 +1,7 @@
 # Playwright end-to-end test plan
 
-**Status:** Baseline implemented; browser-matrix and extended cases remain
-**Scope baseline:** Phases 0–5
+**Status:** Baseline and focused regressions implemented; browser-matrix and extended cases remain
+**Scope baseline:** Phases 0–6C
 
 ## Purpose and boundary
 
@@ -32,8 +32,15 @@ apps/e2e/
   specs/
     smoke-accessibility.spec.ts
     auth.spec.ts
+    beta-readiness.spec.ts
+    form-validation.spec.ts
+    household-governance.spec.ts
+    idempotency.spec.ts
+    notification-preferences.spec.ts
     product-loop.spec.ts
+    privacy.spec.ts
     realtime-resilience.spec.ts
+    screen-catalog.spec.ts (dedicated evidence run)
     authorization.spec.ts
   scripts/users.ts
 ```
@@ -48,7 +55,10 @@ The E2E environment runs the same services as UAT but uses an isolated test
 database:
 
 1. `bin/e2e-api` builds the API image, starts PostgreSQL, migrates the dedicated
-   `domi_e2e` database, and serves HTTP plus `/cable` on port 3100.
+   `domi_e2e` database, and serves HTTP plus `/cable` on port 3100. Its explicit
+   `E2E_MODE` uses a null cache so independent browser users sharing the
+   loopback address do not consume one another's per-IP rate-limit allowance;
+   normal development and production rate limiting remains enabled.
 2. Expo serves the web client on port 8082 with its API URL set to the E2E API.
 3. Accounts needed only as setup are created by an out-of-process Rails runner;
    no fixture route is added to the application.
@@ -102,9 +112,31 @@ The Chromium suite currently automates:
   convergence and a visibly stale offline shopping cache; and
 - outsider denial over both REST and an actual Action Cable subscription.
 
+Focused regressions additionally isolate and prove:
+
+- per-field registration errors, invalid-field accessibility state, and
+  independent recovery as values become valid;
+- generic invalid-credential handling without a browser session being created;
+- negative inventory quantity rejection and the deliberate warned-but-allowed
+  duplicate-name policy;
+- member UI and API denial for owner-only governance, export, and deletion;
+- blocking account deletion until every owned household is transferred or
+  deleted;
+- shopping-notification opt-out, opt-in, delivery, unread count, and mark-all;
+- identical shopping-create retries return one stable resource and leave one
+  list entry.
+- desktop and phone-sized signed-in core surfaces have no automated WCAG A/AA
+  violations, the warmed shell appears within three seconds, and authenticated
+  household-list latency remains below the 500 ms p95 regression budget.
+
 Run it from the repository root with `npm run e2e`. Install browser binaries once
 with `npm run e2e:install`. Set `E2E_ALL_BROWSERS=1` to add the configured WebKit
 project after its browser runtime is installed.
+
+Run `npm run e2e:screenshots` separately to capture the named desktop and
+phone-sized screen catalogue under `screenshots/`. It uses visible assertions
+before every full-page capture and is excluded from the ordinary regression run
+so CI does not rewrite repository evidence on every execution.
 
 ## Realtime and failure injection
 
@@ -125,12 +157,14 @@ project after its browser runtime is installed.
 
 ## Browser matrix
 
-- Pull requests: Chromium desktop, all critical scenarios.
+- Pull requests: Chromium desktop for all critical scenarios plus the
+  phone-sized Chromium beta-readiness scenario.
 - Main/nightly: Chromium plus WebKit for the critical product loop, auth, and
   realtime/reconnect scenarios.
 - Before beta: add Firefox if Expo web support is part of the product commitment.
-- Use one mobile-sized browser viewport as a layout regression project, while
-  recognizing that it is still a web browser, not React Native on a device.
+- The mobile-sized Chromium project runs the signed-in accessibility and
+  performance regression scenario while recognizing that it is still a web
+  browser, not React Native on a device.
 
 ## Native acceptance not covered by Playwright
 
@@ -159,8 +193,8 @@ decision; do not make browser tests pretend to certify native behavior.
 2. [x] Automate smoke/auth/household and the Phase 2–4 golden product loop.
 3. [x] Add authorization, optimistic-conflict, and idempotent-retry tests.
 4. [x] Add realtime propagation, message loss, gap recovery, and convergence.
-5. [ ] Add a mobile-sized project and expand signed-in accessibility scans.
-6. [ ] Make Chromium a required pull-request check and add WebKit nightly.
+5. [x] Add a mobile-sized project and expand signed-in accessibility scans.
+6. [ ] Keep Chromium as a required pull-request check and add WebKit nightly.
 7. [ ] Add a controlled worker/outbox outage scenario in CI/UAT.
 
 The plan is complete when every required scenario maps to an automated spec or

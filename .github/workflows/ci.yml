@@ -23,7 +23,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
       - name: Validate CI/CD configuration
-        run: bin/validate-ci
+        run: |
+          bin/validate-ci
+          bin/validate-local-host
 
   backend:
     name: Backend

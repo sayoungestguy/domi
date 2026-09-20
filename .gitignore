@@ -18,6 +18,8 @@ playwright-report/
 reports/
 test-results/
 tmp/
+backups/
+infrastructure/local/.env.local
 
 # JavaScript / React Native
 node_modules/

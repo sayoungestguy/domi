@@ -215,7 +215,7 @@ export function InventoryScreen({ household, refreshSignal = 0 }: Props) {
   if (loading && items.length === 0) {
     return (
       <View accessibilityLiveRegion="polite" style={styles.loading}>
-        <ActivityIndicator color={colors.brand[600]} />
+        <ActivityIndicator accessibilityLabel="Loading inventory" color={colors.brand[600]} />
         <Text style={sharedStyles.secondary}>Loading inventory…</Text>
       </View>
     );

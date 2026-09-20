@@ -16,5 +16,6 @@ docker compose run --rm \
 exec docker compose run --rm -p 3100:3000 \
   -e DATABASE_URL="$e2e_database_url" \
   -e RAILS_ENV=development \
+  -e E2E_MODE=1 \
   -e APP_VERSION=e2e \
   api bin/rails server --binding 0.0.0.0 --port 3000
